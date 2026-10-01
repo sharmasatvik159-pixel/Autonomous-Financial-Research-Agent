@@ -1,0 +1,34 @@
+# Project1A: Autonomous Financial Research Agent (ARA-1)
+# Core Framework & Agent Orchestration
+langchain>=0.2.0
+langgraph>=0.1.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+langchain-anthropic>=0.1.0
+
+# LLM Providers & API Clients
+openai>=1.30.0
+anthropic>=0.25.0
+tiktoken>=0.7.0
+
+# Vector Database & Retrieval
+chromadb>=0.4.0
+pinecone-client>=3.0.0
+
+# Validation, Configuration & Robustness
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+tenacity>=8.2.0
+httpx>=0.27.0
+
+# Financial Data & Scraping
+yfinance>=0.2.36
+beautifulsoup4>=4.12.0
+textblob>=0.18.0
+
+# Terminal UI, Logging & Testing
+rich>=13.0.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
