@@ -53,3 +53,4 @@ Thumbs.db
 
 # Large runtime storage
 data/chroma_db/
+data/cache/
