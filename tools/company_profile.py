@@ -17,7 +17,6 @@ from config.settings import get_settings
 
 logger = logging.getLogger("ARA1.CompanyProfileTool")
 
-
 class CompanyProfileTool(BaseTool):
     """Tool for retrieving core company profile, sector classification, and leadership roster."""
 
@@ -53,7 +52,6 @@ class CompanyProfileTool(BaseTool):
         self.rate_limiter.acquire()
         logger.info(f"Fetching company profile for {t_clean}")
 
-        # Attempt live yfinance retrieval if not in strict mock mode
         profile_data = None
         if not self.settings.MOCK_MODE:
             try:
@@ -277,7 +275,6 @@ class CompanyProfileTool(BaseTool):
         if ticker in profiles:
             return profiles[ticker]
 
-        # Generic fallback
         return {
             "ticker": ticker,
             "company_name": f"{ticker} Corporation",

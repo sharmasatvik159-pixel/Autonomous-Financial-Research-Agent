@@ -18,17 +18,14 @@ from memory.episodic import EpisodicMemoryStore, EpisodicRecord, ErrorRecoveryPa
 from tools.memory_tools import VectorDbSearchTool, VectorDbStoreTool
 from tools.tool_registry import ToolRegistry
 
-
 @pytest.fixture
 def temp_store_dir():
     temp_dir = tempfile.mkdtemp(prefix="ara1_day6_test_")
     yield temp_dir
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-
 def test_document_chunker_section_aware():
     """Verify section-aware chunking for SEC filings and Q&A speaker pair chunking for transcripts."""
-    # 1. SEC Filing chunking
     filing_text = (
         "ITEM 1. BUSINESS\n"
         "Microsoft develops enterprise software and cloud platforms.\n\n"
@@ -50,7 +47,6 @@ def test_document_chunker_section_aware():
     assert "item1a" in tags
     assert "item7" in tags
 
-    # 2. Earnings Call Q&A speaker pairs
     transcript_text = (
         "Satya Nadella: Welcome everyone. We had a record quarter driven by Microsoft Cloud.\n\n"
         "Questions and Answers Session\n\n"
@@ -65,7 +61,6 @@ def test_document_chunker_section_aware():
     )
     assert len(qa_chunks) >= 1
     assert any("Keith Weiss" in c.content for c in qa_chunks)
-
 
 def test_vector_store_schema_and_retrieval(temp_store_dir):
     """Verify storing test research documents, metadata tagging, and semantic vector retrieval."""
@@ -102,7 +97,6 @@ def test_vector_store_schema_and_retrieval(temp_store_dir):
     store.add_documents([doc1, doc2, doc3])
     assert store.count() == 3
 
-    # Semantic query with ticker filter
     results = store.search("Azure OpenAI enterprise Copilot", ticker="MSFT", top_k=2)
     assert len(results) > 0
     top = results[0].document
@@ -111,12 +105,10 @@ def test_vector_store_schema_and_retrieval(temp_store_dir):
     assert top.verified is True
     assert top.confidence >= 0.90
 
-    # Query with source_type filter
     tsla_results = store.search("automotive gross margin price cuts", source_type="10-K", top_k=2)
     assert len(tsla_results) > 0
     assert tsla_results[0].document.ticker == "TSLA"
     store.close()
-
 
 def test_context_window_compression():
     """Verify progressive summarization and observation compaction for large text blocks."""
@@ -130,12 +122,10 @@ def test_context_window_compression():
         ]
     }
 
-    # Verify structured JSON compaction to Markdown table
     compacted = cm.compact_observation(large_observation)
     assert "| year | revenue | operating_margin |" in compacted
     assert "$245.12B" in compacted
 
-    # Verify progressive summarization
     history = [
         "Research Query: Microsoft revenue breakdown",
         "Thought: Step 1 find profile",
@@ -153,13 +143,11 @@ def test_context_window_compression():
     assert "PROGRESSIVE SUMMARY OF EARLIER RESEARCH STEPS" in joined
     assert "Thought: Step 3 finalize analysis" in joined
 
-
 def test_episodic_memory_and_strategy_store(temp_store_dir):
     """Verify episodic memory recording, strategy retrieval, and error recovery paths."""
     store_file = Path(temp_store_dir) / "test_episodes.json"
     episodic = EpisodicMemoryStore(persist_path=str(store_file))
 
-    # Record episode
     ep = EpisodicRecord(
         query="Analyze Apple quarterly earnings vs consensus",
         query_type="earnings_analysis",
@@ -172,13 +160,11 @@ def test_episodic_memory_and_strategy_store(temp_store_dir):
     rec_id = episodic.record_episode(ep)
     assert rec_id.startswith("ep-")
 
-    # Retrieve similar strategy
     matches = episodic.retrieve_strategy("Apple quarterly earnings review", target_ticker="AAPL")
     assert len(matches) > 0
     top = matches[0]
     assert "financial_data_api" in top.tool_sequence
 
-    # Record error recovery path
     episodic.record_error_recovery(
         failed_tool="earnings_transcript",
         error_message="rate_limit_exceeded",
@@ -190,7 +176,6 @@ def test_episodic_memory_and_strategy_store(temp_store_dir):
     assert len(recs) >= 1
     assert any(r.recovery_tool == "web_search" for r in recs)
 
-
 def test_memory_tools_registry_integration(temp_store_dir):
     """Verify vector_db_store and vector_db_search tools operating inside ToolRegistry."""
     store = FinancialVectorStore(persist_directory=temp_store_dir, collection_name="registry_col")
@@ -201,7 +186,6 @@ def test_memory_tools_registry_integration(temp_store_dir):
     registry.register_tool(search_tool)
     registry.register_tool(store_tool)
 
-    # Store via registry
     store_res = registry.execute(
         "vector_db_store",
         {
@@ -217,7 +201,6 @@ def test_memory_tools_registry_integration(temp_store_dir):
     )
     assert store_res.success is True
 
-    # Search via registry
     search_res = registry.execute(
         "vector_db_search",
         {

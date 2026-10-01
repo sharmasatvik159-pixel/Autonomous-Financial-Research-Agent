@@ -927,5 +927,22 @@
     "outcome_quality": 0.96,
     "citation_count": 0,
     "timestamp": "2026-10-01T14:21:31.375200+00:00"
+  },
+  {
+    "episode_id": "ep-422a1faf",
+    "query": "Analyze Microsoft Corporation",
+    "query_type": "financial_research",
+    "target_ticker": "MSFT",
+    "tool_sequence": [
+      "company_profile"
+    ],
+    "successful_plan": [
+      "Executed 1 steps for MSFT"
+    ],
+    "error_recovery_paths": [],
+    "reflection": "Synthesized research report for MSFT using 1 tool steps.",
+    "outcome_quality": 0.96,
+    "citation_count": 0,
+    "timestamp": "2026-10-01T14:30:14.336488+00:00"
   }
 ]

@@ -18,7 +18,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -30,7 +29,6 @@ from agent.fallback_chains import get_fallback_coordinator
 from agent.circuit_breaker import get_circuit_breaker_registry
 from config.settings import get_settings
 
-
 class Challenge6MockLLM(MockChatModel):
     """Context-aware mock LLM that executes the ReAct cycle for Ambiguous Query Disambiguation."""
 
@@ -40,7 +38,6 @@ class Challenge6MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Query SEC Form 10-K for Tier 1 audited benchmark (JPMorgan Chase Item 7 MD&A)
         if self.step == 1:
             content = (
                 "Thought: The user's query 'What's happening with the banks?' is inherently broad and ambiguous across geography "
@@ -52,7 +49,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: sec_filing_search\n"
                 "Action Input: {\"ticker\": \"JPM\", \"filing_type\": \"10-K\", \"section\": \"Item 7\"}"
             )
-        # Step 2: Query peer comparison tool to benchmark the Big Four G-SIBs (JPM, BAC, WFC, C)
         elif self.step == 2:
             content = (
                 "Thought: Having examined the Tier 1 statutory disclosures for JPM, I now need a multi-bank comparative matrix "
@@ -61,7 +57,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: peer_comparison\n"
                 "Action Input: {\"ticker\": \"JPM\", \"peers\": [\"BAC\", \"WFC\", \"C\"], \"metrics\": [\"pe_ratio\", \"market_cap\", \"revenue\", \"roe\"]}"
             )
-        # Step 3: Query financial data API for regional bank balance sheet fundamentals (demonstrating resilience / fallback)
         elif self.step == 3:
             content = (
                 "Thought: Now I need to examine the regional banking tier, specifically looking at balance sheet vulnerabilities "
@@ -70,7 +65,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"NYCB\", \"statement_type\": \"balance_sheet\", \"period\": \"annual\", \"years\": 2}"
             )
-        # Step 4: Query news sentiment to capture regional banking stress, CRE default risks, and deposit flight
         elif self.step == 4:
             content = (
                 "Thought: I need to evaluate current market sentiment and press commentary regarding regional banking liquidity, "
@@ -78,7 +72,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: news_sentiment\n"
                 "Action Input: {\"query\": \"US regional banks commercial real estate deposit flight net interest margin\", \"num_articles\": 5, \"lookback_days\": 60}"
             )
-        # Step 5: Execute calculation engine for loan loss reserve coverage and deposit beta sensitivity
         elif self.step == 5:
             content = (
                 "Thought: To quantitatively substantiate the divergence in risk profiles between G-SIBs and regional lenders, "
@@ -86,7 +79,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: calculation_engine\n"
                 "Action Input: {\"calculation_type\": \"ratio\", \"inputs\": {\"numerator\": 51.4, \"denominator\": 38.6}}"
             )
-        # Step 6: Fact check regulatory history to resolve Deliberate Error 3 (SCAP 2009 vs Dodd-Frank 2010)
         elif self.step == 6:
             content = (
                 "Thought: In banking sector analyses, regulatory stress testing is a core pillar. I must verify the regulatory "
@@ -95,7 +87,6 @@ class Challenge6MockLLM(MockChatModel):
                 "Action: fact_checker\n"
                 "Action Input: {\"claim\": \"The first US bank stress tests under SCAP were conducted in 2007 following the Dodd-Frank Act\", \"ticker\": \"JPM\"}"
             )
-        # Step 7: Final Comprehensive Ambiguous Query Disambiguation & Banking Sector Synthesis Report
         else:
             content = (
                 "Thought: I have synthesized statutory SEC disclosures, G-SIB peer comparisons, regional bank balance sheet metrics, "
@@ -224,7 +215,6 @@ class Challenge6MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 160, "completion_tokens": 380}})
 
-
 def run_challenge_6(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 6 end-to-end and writes results/challenge_6.md."""
     settings = get_settings()
@@ -245,7 +235,6 @@ def run_challenge_6(output_dir: Optional[str] = None) -> str:
     registry = create_default_registry()
     print(f"[INIT] Loaded ToolRegistry with {len(registry.list_tools())} production tools.")
 
-    # Initialize Day 9 resilience coordinators
     fallback_coord = get_fallback_coordinator()
     cb_registry = get_circuit_breaker_registry()
     print(f"[RESILIENCE] FallbackChainCoordinator active with {len(fallback_coord.chains)} fallback chains.")
@@ -263,7 +252,6 @@ def run_challenge_6(output_dir: Optional[str] = None) -> str:
     result = agent.execute(query, session_id="challenge-6-session")
     elapsed = time.time() - start_time
 
-    # Ensure results/challenge_6.md contains the full markdown synthesis
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(result.report)
 
@@ -273,7 +261,6 @@ def run_challenge_6(output_dir: Optional[str] = None) -> str:
     print(f"[TOOLS] Invoked: {[tc['tool'] for tc in result.tool_calls]}")
     print("=" * 75)
     return str(report_path)
-
 
 if __name__ == "__main__":
     run_challenge_6()

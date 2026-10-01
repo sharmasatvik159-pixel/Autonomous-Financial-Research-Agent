@@ -17,7 +17,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.Tools.WebSearch")
 
-
 class WebSearchTool(BaseTool):
     """Tool that retrieves financial news and web search results."""
 
@@ -54,7 +53,6 @@ class WebSearchTool(BaseTool):
         self.rate_limiter.acquire(self.name, rps=4.0)
         results: List[Dict[str, Any]] = []
 
-        # 1. Try Tavily API if configured
         if self.settings.TAVILY_API_KEY and not self.settings.TAVILY_API_KEY.startswith("your_"):
             try:
                 with httpx.Client(timeout=10.0) as client:
@@ -80,11 +78,9 @@ class WebSearchTool(BaseTool):
             except Exception as e:
                 logger.warning(f"Tavily search failed: {e}. Attempting fallback.")
 
-        # 2. Try DuckDuckGo / Wikipedia fallback if no results
         if not results:
             results = self._fetch_public_search(query, num_results)
 
-        # Cache results for 30 minutes
         self.cache.set(self.name, cache_args, results, ttl_seconds=1800)
         return results
 
@@ -92,7 +88,6 @@ class WebSearchTool(BaseTool):
         """Fetches public information from Wikipedia API or curated financial news."""
         results = []
         try:
-            # Query Wikipedia API for foundational corporate facts
             with httpx.Client(timeout=6.0) as client:
                 resp = client.get(
                     "https://en.wikipedia.org/w/api.php",
@@ -120,7 +115,6 @@ class WebSearchTool(BaseTool):
         except Exception as e:
             logger.debug(f"Public encyclopedia query failed: {e}")
 
-        # If still empty, return curated domain fallback
         if not results:
             results = [
                 {

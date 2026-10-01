@@ -6,7 +6,6 @@ from agent.llm_client import LLMClient, MockChatModel
 from agent.parser import ReActOutputParser, AgentAction, AgentFinish, PlanOutput
 from tools.tool_registry import create_default_registry
 
-
 def test_parser_extracts_action():
     """Verify parser extracts thought, tool name, and JSON input."""
     text = (
@@ -20,7 +19,6 @@ def test_parser_extracts_action():
     assert parsed.tool_input == {"ticker": "TSLA"}
     assert "Tesla" in parsed.thought
 
-
 def test_parser_extracts_final_answer():
     """Verify parser extracts thought and final report."""
     text = (
@@ -32,10 +30,8 @@ def test_parser_extracts_final_answer():
     assert "Apple Inc. Profile" in parsed.return_values["output"]
     assert "gathered all necessary" in parsed.thought
 
-
 def test_agent_execution_with_mock_tools():
     """Verify agent completes a reasoning loop with mock tools."""
-    # Custom mock model that produces an Action then Final Answer
     class TwoStepMock(MockChatModel):
         def __init__(self):
             super().__init__()
@@ -73,10 +69,8 @@ def test_agent_execution_with_mock_tools():
     assert result.tool_calls[0]["tool"] == "company_profile"
     assert "# Microsoft Profile" in result.report
 
-
 def test_agent_strict_iteration_limit():
     """Verify agent terminates when maximum iteration limit is reached."""
-    # Mock model that loops indefinitely requesting tools
     class InfiniteMock(MockChatModel):
         def invoke(self, messages, tools=None):
             from langchain_core.messages import AIMessage
@@ -94,7 +88,7 @@ def test_agent_strict_iteration_limit():
     agent = FinancialResearchAgent(
         llm_client=llm,
         tool_registry=create_default_registry(),
-        max_iterations=3,  # Strict cap
+        max_iterations=3,
     )
 
     result = agent.execute("Continuous tech research")

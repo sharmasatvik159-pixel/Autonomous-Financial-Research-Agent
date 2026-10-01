@@ -31,7 +31,6 @@ from evaluation.metrics import (
     ReportEvaluationResult,
 )
 
-
 def test_benchmarks_loaded():
     """Verify human analyst benchmarks exist for MSFT, AAPL, TSLA."""
     benchmarks = load_all_benchmarks()
@@ -49,14 +48,12 @@ def test_benchmarks_loaded():
     tsla = get_benchmark("TSLA")
     assert tsla["ground_truth_metrics"]["auto_gross_margin_ex_credits"] == 16.4
 
-
 def test_ab4_memory_utilization_ratio_correction():
     """Verify AB-4 evaluates true ratio (memory_hits / total_calls), fixing document Error 1."""
     score = evaluate_ab4_memory_utilization({"memory_hits": 3, "total_api_calls": 5})
     assert score.score == 0.6
     assert score.passed is True
     assert "Rectified" in score.details or "ratio" in score.details.lower()
-
 
 def test_fa5_hallucination_check():
     """Verify FA-5 catches forbidden placeholder strings."""
@@ -70,7 +67,6 @@ def test_fa5_hallucination_check():
     fail_score = evaluate_fa5_zero_hallucinations(dirty_text)
     assert fail_score.score == 0.0
     assert fail_score.passed is False
-
 
 def test_full_report_evaluation():
     """Verify evaluate_report aggregates all 22 metrics and returns composite score."""
@@ -93,7 +89,6 @@ Source: SEC Form 10-K and financial_data_api.
     assert len(result.scores) >= 20
     assert result.composite_score > 0.70
     assert result.category_scores["Coherence & Structure"] == 1.0
-
 
 def test_evaluate_results_directory():
     """Verify evaluate_results_directory processes all available challenge files."""

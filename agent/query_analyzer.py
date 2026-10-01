@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger("ARA1.QueryIntelligence.Analyzer")
 
-
 class QueryScope(str, Enum):
     SINGLE_COMPANY = "SINGLE_COMPANY"
     PEER_GROUP = "PEER_GROUP"
@@ -25,20 +24,17 @@ class QueryScope(str, Enum):
     REGULATORY = "REGULATORY"
     UNKNOWN = "UNKNOWN"
 
-
 class QueryComplexity(str, Enum):
     SIMPLE_FACTUAL = "SIMPLE_FACTUAL"
     COMPARATIVE_MULTI_ENTITY = "COMPARATIVE_MULTI_ENTITY"
     CONTRADICTORY_SYNTHESIS = "CONTRADICTORY_SYNTHESIS"
     DEEP_THEMATIC_RESEARCH = "DEEP_THEMATIC_RESEARCH"
 
-
 class AmbiguityLevel(str, Enum):
-    CLEAR = "CLEAR"          # Specific ticker, period, metric (e.g. "What was MSFT's Q4 cloud revenue?")
-    MODERATE = "MODERATE"    # Known entity but open-ended objective (e.g. "Analyze Apple's business")
-    HIGH = "HIGH"            # Broad collective nouns (e.g. "What's happening with the banks?")
-    CRITICAL = "CRITICAL"    # Extreme vagueness (e.g. "How is tech doing?", "Give me some stocks")
-
+    CLEAR = "CLEAR"
+    MODERATE = "MODERATE"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 class EntityLifecycle(str, Enum):
     PUBLIC_MATURE = "PUBLIC_MATURE"
@@ -46,7 +42,6 @@ class EntityLifecycle(str, Enum):
     PRIVATE_COMPANY = "PRIVATE_COMPANY"
     DISTRESSED_MA = "DISTRESSED_MA"
     UNKNOWN = "UNKNOWN"
-
 
 class QueryAnalysisResult(BaseModel):
     """Structured assessment produced by QueryAnalyzer."""
@@ -67,14 +62,11 @@ class QueryAnalysisResult(BaseModel):
     requires_memory_synthesis: bool = False
     recommended_strategy: str = "REACT_STANDARD"
 
-
 class QueryAnalyzer:
     """Classifies financial research queries for ambiguity, complexity, and special edge cases."""
 
-    # Ticker pattern: 1-5 capital letters isolated or with $ prefix
     TICKER_REGEX = re.compile(r"(?:\$|\b)([A-Z]{1,5})\b")
 
-    # Common financial tickers mapping
     KNOWN_TICKERS: Dict[str, str] = {
         "MICROSOFT": "MSFT", "APPLE": "AAPL", "TESLA": "TSLA",
         "AMAZON": "AMZN", "GOOGLE": "GOOGL", "ALPHABET": "GOOGL",
@@ -83,19 +75,16 @@ class QueryAnalyzer:
         "CITIGROUP": "C", "CITI": "C", "NEW YORK COMMUNITY BANCORP": "NYCB",
     }
 
-    # Known Private Companies
     KNOWN_PRIVATE_ENTITIES: Set[str] = {
         "OPENAI", "STRIPE", "BYTEDANCE", "SPACEX", "ANTHROPIC",
         "DATABRICKS", "CANVA", "EPIC GAMES", "REVOLUT", "CHIME",
     }
 
-    # Recent IPOs (last 1-2 years or limited SEC 10-K history)
     KNOWN_RECENT_IPOS: Set[str] = {
         "ARM", "REDDIT", "RDDT", "BIRKENSTOCK", "BIRK", "INSTACART", "CART",
         "KLARNA", "RUBRIK", "RBRK", "TEMU",
     }
 
-    # Sector keywords
     SECTOR_KEYWORDS: Dict[str, List[str]] = {
         "Technology": ["tech", "technology", "software", "cloud", "saas", "hardware", "semiconductor", "ai", "artificial intelligence"],
         "Financials": ["bank", "banks", "banking", "financial", "fintech", "insurance", "brokerage", "lending", "credit"],
@@ -104,7 +93,6 @@ class QueryAnalyzer:
         "Healthcare": ["biotech", "pharma", "pharmaceutical", "healthcare", "medical device"],
     }
 
-    # Rapid Corporate Change / Distressed M&A keywords
     RAPID_CHANGE_KEYWORDS: List[str] = [
         "acquisition", "merger", "buyout", "takeover", "tender offer",
         "bankruptcy", "chapter 11", "restructuring", "default", "liquidation",
@@ -112,7 +100,6 @@ class QueryAnalyzer:
         "activist", "spin-off", "spinoff", "proxy fight", "sudden departure",
     ]
 
-    # Extreme ambiguity indicator patterns
     VAGUE_PATTERNS: List[re.Pattern] = [
         re.compile(r"^what(?:'s| is) happening with (.+)\??$", re.IGNORECASE),
         re.compile(r"^how (?:are|is) (.+) doing\??$", re.IGNORECASE),
@@ -131,17 +118,14 @@ class QueryAnalyzer:
         cleaned_query = " ".join(raw_query.split())
         query_upper = cleaned_query.upper()
 
-        # 1. Extract tickers and named entities
         extracted_tickers = self._extract_tickers(cleaned_query)
         extracted_entities = self._extract_named_entities(cleaned_query)
 
-        # 2. Sector detection
         detected_sectors = []
         for sector, kws in self.SECTOR_KEYWORDS.items():
             if any(re.search(rf"\b{re.escape(kw)}\b", cleaned_query, re.IGNORECASE) for kw in kws):
                 detected_sectors.append(sector)
 
-        # 3. Detect edge cases (Private companies, Recent IPOs, Rapid corporate changes)
         detected_edge_cases = []
         lifecycle = EntityLifecycle.PUBLIC_MATURE
 
@@ -164,24 +148,19 @@ class QueryAnalyzer:
             if lifecycle == EntityLifecycle.PUBLIC_MATURE:
                 lifecycle = EntityLifecycle.DISTRESSED_MA
 
-        # 4. Scope classification
         scope = self._classify_scope(cleaned_query, extracted_tickers, detected_sectors)
 
-        # 5. Complexity classification
         complexity = self._classify_complexity(cleaned_query, scope)
 
-        # 6. Ambiguity calculation
         ambiguity_level, ambiguity_score, missing_dimensions = self._assess_ambiguity(
             cleaned_query, extracted_tickers, detected_sectors, scope
         )
 
-        # 7. Check if memory synthesis is needed (e.g. "companies you've already researched")
         requires_memory = bool(
             re.search(r"already researched|previous(?:ly)? researched|in your memory|vector memory|past research", cleaned_query, re.IGNORECASE)
             or (scope == QueryScope.SECTOR_INDUSTRY and "theme" in cleaned_query.lower())
         )
 
-        # 8. Strategy selection
         strategy = "REACT_STANDARD"
         if requires_memory:
             strategy = "MEMORY_DRIVEN_SECTOR_SYNTHESIS"
@@ -214,11 +193,9 @@ class QueryAnalyzer:
     def _extract_tickers(self, query: str) -> List[str]:
         """Extracts valid capitalized stock ticker candidates."""
         matches = self.TICKER_REGEX.findall(query)
-        # Filter common non-ticker English words
         blacklist = {"A", "I", "AND", "OR", "THE", "FOR", "IN", "ON", "WHAT", "HOW", "WITH", "IS", "ARE", "OF", "TO", "SEC", "CEO", "CFO", "DCF", "PE", "EPS", "ROE"}
         valid_tickers = [m for m in matches if m not in blacklist and len(m) <= 5]
 
-        # Also check company names
         query_upper = query.upper()
         for name, ticker in self.KNOWN_TICKERS.items():
             if name in query_upper and ticker not in valid_tickers:
@@ -274,12 +251,10 @@ class QueryAnalyzer:
         missing = []
         score = 0.0
 
-        # Check for vague phrasing patterns (e.g. "What's happening with the banks?")
         is_vague_pattern = any(pat.match(query) for pat in self.VAGUE_PATTERNS)
         if is_vague_pattern:
             score += 0.45
 
-        # Check entity specification
         if not tickers and not sectors:
             score += 0.35
             missing.append("Target Entity or Sector Specificity")
@@ -287,19 +262,16 @@ class QueryAnalyzer:
             score += 0.15
             missing.append("Constituent Institutional Tickers")
 
-        # Check temporal horizon
         has_time = any(w in query.lower() for w in ["q1", "q2", "q3", "q4", "2023", "2024", "2025", "2026", "fy", "ttm", "recent", "annual", "quarterly"])
         if not has_time:
             score += 0.15
             missing.append("Temporal Horizon / Fiscal Period")
 
-        # Check geographic boundary
         has_geo = any(w in query.lower() for w in ["us", "usa", "europe", "european", "asia", "china", "global", "india"])
         if not has_geo:
             score += 0.10
             missing.append("Geographic Jurisdiction")
 
-        # Check explicit analytical metrics
         has_metrics = any(w in query.lower() for w in ["margin", "revenue", "valuation", "ratio", "risk", "growth", "dcf", "roe", "nii", "cre"])
         if not has_metrics:
             score += 0.15
@@ -318,9 +290,7 @@ class QueryAnalyzer:
 
         return level, score, missing
 
-
 _GLOBAL_QUERY_ANALYZER: Optional[QueryAnalyzer] = None
-
 
 def get_query_analyzer() -> QueryAnalyzer:
     """Retrieves or initializes the global QueryAnalyzer singleton."""

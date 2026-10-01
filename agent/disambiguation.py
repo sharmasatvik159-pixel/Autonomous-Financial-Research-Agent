@@ -23,7 +23,6 @@ from agent.query_analyzer import (
 
 logger = logging.getLogger("ARA1.QueryIntelligence.Disambiguation")
 
-
 class EdgeCaseGuidance(BaseModel):
     """Specific routing and constraint instructions for special entity types."""
     entity_name: str
@@ -34,7 +33,6 @@ class EdgeCaseGuidance(BaseModel):
     confidence_penalty: float = 0.0
     alternative_proxies: List[str] = Field(default_factory=list)
 
-
 class DisambiguationPlan(BaseModel):
     """Complete disambiguation artifact for execution and logging."""
     raw_query: str
@@ -43,7 +41,6 @@ class DisambiguationPlan(BaseModel):
     clarifying_questions: List[str]
     edge_case_guidance: Optional[EdgeCaseGuidance] = None
     preamble_markdown: str
-
 
 class DisambiguationEngine:
     """Generates explicit operational assumptions and handles specialized corporate edge cases."""
@@ -71,13 +68,11 @@ class DisambiguationEngine:
         """Formulates concrete, institutional operating assumptions to resolve missing dimensions."""
         assumptions = []
 
-        # 1. Geographic Assumption
         if "Geographic Jurisdiction" in analysis.missing_dimensions:
             assumptions.append(
                 "**Geographic Scope:** Inferred primary jurisdiction as United States capital markets and SEC regulatory oversight, with cross-border linkages evaluated where relevant."
             )
 
-        # 2. Entity / Benchmark Cohort Assumption
         if "Target Entity or Sector Specificity" in analysis.missing_dimensions:
             if "Financials" in analysis.target_sectors or "banks" in analysis.cleaned_query.lower():
                 assumptions.append(
@@ -97,13 +92,11 @@ class DisambiguationEngine:
                 f"**Constituent Cohort:** Sampled representative market-cap leaders in the {sector} sector to evaluate prevailing structural themes."
             )
 
-        # 3. Temporal Horizon Assumption
         if "Temporal Horizon / Fiscal Period" in analysis.missing_dimensions:
             assumptions.append(
                 "**Temporal Horizon:** Focused on the trailing twelve months (TTM) and current fiscal year, contextualized by a 3-year historical trend."
             )
 
-        # 4. Metric Focus Assumption
         if "Target Metric or Valuation Vector" in analysis.missing_dimensions:
             if "Financials" in analysis.target_sectors or "banks" in analysis.cleaned_query.lower():
                 assumptions.append(
@@ -114,7 +107,6 @@ class DisambiguationEngine:
                     "**Analytical Vector:** Evaluated fundamental revenue growth, operating margin expansion, capital expenditure intensity, and peer valuation multiples."
                 )
 
-        # Fallback if no specific missing dimensions were flagged
         if not assumptions:
             assumptions.append(
                 "**Standard Baseline:** Standardized on audited SEC statutory disclosures, consensus Wall Street multiples, and verified historical filings."
@@ -143,7 +135,6 @@ class DisambiguationEngine:
 
     def evaluate_edge_cases(self, analysis: QueryAnalysisResult) -> Optional[EdgeCaseGuidance]:
         """Provides specialized operational routing when encountering non-standard corporate profiles."""
-        # 1. Private Company Edge Case
         if analysis.lifecycle_status == EntityLifecycle.PRIVATE_COMPANY:
             entity = analysis.extracted_entities[0] if analysis.extracted_entities else "Target Private Entity"
             return EdgeCaseGuidance(
@@ -160,7 +151,6 @@ class DisambiguationEngine:
                 alternative_proxies=["Publicly traded enterprise software peers", "S&P 500 Software & Services Industry Group"],
             )
 
-        # 2. Recent IPO Edge Case
         if analysis.lifecycle_status == EntityLifecycle.RECENT_IPO:
             entity = analysis.extracted_entities[0] if analysis.extracted_entities else "Recent IPO Entity"
             return EdgeCaseGuidance(
@@ -177,7 +167,6 @@ class DisambiguationEngine:
                 alternative_proxies=["Mature industry incumbents for multiple benchmarking"],
             )
 
-        # 3. Rapid Corporate Change / Distressed M&A
         if analysis.rate_of_change_flag or analysis.lifecycle_status == EntityLifecycle.DISTRESSED_MA:
             entity = analysis.extracted_entities[0] if analysis.extracted_entities else "Target Entity"
             return EdgeCaseGuidance(
@@ -225,9 +214,7 @@ class DisambiguationEngine:
         lines.append("")
         return "\n".join(lines)
 
-
 _GLOBAL_DISAMBIGUATION_ENGINE: Optional[DisambiguationEngine] = None
-
 
 def get_disambiguation_engine() -> DisambiguationEngine:
     """Retrieves or initializes the global DisambiguationEngine singleton."""

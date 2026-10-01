@@ -11,7 +11,6 @@ from tools.tool_registry import (
 )
 from tools.schemas import SecFilingSearchInput, CalculationEngineInput
 
-
 def test_registry_registration_and_retrieval():
     """Verify tools can be registered, listed, and retrieved."""
     registry = create_default_registry()
@@ -27,7 +26,6 @@ def test_registry_registration_and_retrieval():
     assert sec_tool.name == "sec_filing_search"
     assert sec_tool.metadata.category == "regulatory"
 
-
 def test_openai_schema_generation():
     """Verify tool schemas generate valid OpenAI function specs."""
     registry = create_default_registry()
@@ -40,7 +38,6 @@ def test_openai_schema_generation():
     assert "description" in first_schema["function"]
     assert "parameters" in first_schema["function"]
     assert first_schema["function"]["parameters"]["type"] == "object"
-
 
 def test_tool_execution_success():
     """Test successful tool execution with parameter validation."""
@@ -56,11 +53,9 @@ def test_tool_execution_success():
     assert result.error is None
     assert result.latency_seconds >= 0.0
 
-
 def test_tool_execution_schema_validation_failure():
     """Test execution fails gracefully on invalid parameters."""
     registry = create_default_registry()
-    # Missing required 'filing_type'
     result = registry.execute(
         "sec_filing_search",
         {"ticker": "AAPL"}
@@ -68,7 +63,6 @@ def test_tool_execution_schema_validation_failure():
 
     assert result.success is False
     assert "validation failed" in result.error.lower()
-
 
 def test_tool_lock_and_unlock():
     """Test dynamic tool unlocking mechanism (supports progression milestones)."""
@@ -81,17 +75,14 @@ def test_tool_lock_and_unlock():
     assert result.success is False
     assert "locked" in result.error.lower()
 
-    # Unlock tool
     unlocked = registry.unlock_tool("calculation_engine")
     assert unlocked is True
     assert "calculation_engine" in registry.list_tools(only_unlocked=True)
-
 
 def test_fallback_routing():
     """Test that a failing tool triggers fallback chain."""
     registry = ToolRegistry()
 
-    # Create primary tool that always fails
     def fail_handler(**kwargs):
         raise ConnectionError("Primary API service unavailable")
 
@@ -120,18 +111,15 @@ def test_fallback_routing():
     assert res.fallback_used == "backup_working_api"
     assert res.data["source"] == "backup_db"
 
-
 def test_circuit_breaker():
     """Test circuit breaker stops calls when tripped."""
     registry = create_default_registry()
 
-    # Hook circuit breaker that trips for 'web_search'
     registry.set_circuit_breaker(lambda tool_name: tool_name == "web_search")
 
     res = registry.execute("web_search", {"query": "Tesla revenue"}, use_fallback=False)
     assert res.success is False
     assert "circuit breaker open" in res.error.lower()
-
 
 def test_tool_cache_set_and_get():
     """Verify ToolCache persists and retrieves data with expiration check."""
@@ -148,22 +136,18 @@ def test_tool_cache_set_and_get():
         assert cached_val is not None
         assert cached_val["revenue"] == 391000000000
 
-        # Non-matching args return None
         miss_val = cache.get("test_tool", {"ticker": "MSFT"})
         assert miss_val is None
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-
 
 def test_rate_limiter_acquire():
     """Verify APIRateLimiter token bucket allows timely acquisition."""
     from tools.rate_limiter import APIRateLimiter
 
     limiter = APIRateLimiter()
-    # Acquire token for sec_filing_search (10 rps)
     limiter.acquire("sec_filing_search", rps=10.0)
     limiter.acquire("financial_data_api", rps=5.0)
-
 
 def test_news_sentiment_tool_scoring():
     """Verify NewsSentimentTool calculates polarity and subjectivity."""
@@ -178,7 +162,6 @@ def test_news_sentiment_tool_scoring():
     assert len(res["articles"]) > 0
     assert res["overall_sentiment"] in ["BULLISH", "BEARISH", "NEUTRAL"]
 
-
 def test_financial_data_api_fallback_and_structure():
     """Verify FinancialDataApiTool returns standardized financial statement data."""
     from tools.financial_api import FinancialDataApiTool
@@ -190,7 +173,6 @@ def test_financial_data_api_fallback_and_structure():
     assert "market_cap" in res
     assert "operating_margins" in res
     assert "financial_statements" in res
-
 
 def test_earnings_transcript_tool():
     """Verify EarningsTranscriptTool retrieves structured conference call Q&A."""
@@ -207,7 +189,6 @@ def test_earnings_transcript_tool():
     assert "guidance_summary" in res
     assert res["source_tier"] == 3
 
-
 def test_company_profile_tool():
     """Verify CompanyProfileTool retrieves corporate metadata and CIK."""
     from tools.company_profile import CompanyProfileTool
@@ -222,7 +203,6 @@ def test_company_profile_tool():
     assert "Automotive" in res["description"]
     assert len(res["business_segments"]) >= 2
 
-
 def test_peer_comparison_tool():
     """Verify PeerComparisonTool builds cloud competitor comparison matrix."""
     from tools.peer_comparison import PeerComparisonTool
@@ -232,13 +212,11 @@ def test_peer_comparison_tool():
 
     assert res["target_ticker"] == "AMZN"
     assert len(res["peer_comparison_matrix"]) >= 3
-    # Check that AWS, Azure, and GCP peers are included
     tickers = [p["ticker"] for p in res["peer_comparison_matrix"]]
     assert "AMZN" in tickers
     assert "MSFT" in tickers
     assert "GOOGL" in tickers
     assert "sector_insights" in res
-
 
 def test_calculation_engine_tool():
     """Verify CalculationEngineTool computes DCF, WACC, CAGR, and margins."""
@@ -246,7 +224,6 @@ def test_calculation_engine_tool():
 
     calc = CalculationEngineTool()
 
-    # 1. DCF Valuation
     dcf_res = calc.run(
         calculation_type="dcf",
         inputs={
@@ -261,7 +238,6 @@ def test_calculation_engine_tool():
     assert dcf_res["enterprise_value"] > 0
     assert dcf_res["implied_share_price"] > 0
 
-    # 2. WACC Calculation
     wacc_res = calc.run(
         calculation_type="wacc",
         inputs={"equity_value": 800.0, "debt_value": 200.0, "cost_of_equity": 0.10, "cost_of_debt": 0.05, "tax_rate": 0.21}
@@ -269,14 +245,11 @@ def test_calculation_engine_tool():
     assert "wacc_percentage" in wacc_res
     assert wacc_res["wacc_decimal"] > 0.07
 
-    # 3. CAGR Calculation
     cagr_res = calc.run(calculation_type="cagr", inputs={"start_val": 100.0, "end_val": 200.0, "periods": 3})
     assert cagr_res["cagr_decimal"] > 0.25
 
-    # 4. Margin Calculation
     margin_res = calc.run(calculation_type="margin", inputs={"numerator": 45.0, "revenue": 100.0})
     assert margin_res["margin_percentage"] == "45.00%"
-
 
 def test_fact_checker_tool():
     """Verify FactCheckerTool cross-references claims against authoritative data."""
@@ -289,7 +262,6 @@ def test_fact_checker_tool():
     assert res["confidence_score"] >= 0.90
     assert len(res["verified_findings"]) >= 1
     assert any("245.12" in f for f in res["verified_findings"])
-
 
 def test_report_generator_tool():
     """Verify ReportGeneratorTool formats sections into institutional Markdown."""
@@ -315,5 +287,4 @@ def test_report_generator_tool():
     assert "## Regulatory Risks" in res["report_markdown"]
     assert "NHTSA investigations" in res["report_markdown"]
     assert res["sources_count"] == 3
-
 

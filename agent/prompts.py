@@ -7,7 +7,6 @@ and financial domain behavioral constraints.
 
 from typing import List, Dict, Any, Optional
 
-
 SYSTEM_PROMPT_PREFIX = """You are ARA-1 (Autonomous Research Agent), a senior quantitative and fundamental financial analyst operating at QuantumEdge Research.
 Your mandate is to produce institutional-grade investment research reports comparable to junior analyst output at tier-1 investment banks.
 
@@ -75,7 +74,6 @@ Output your response in the following JSON format:
 ```
 """
 
-
 def format_tool_descriptions(tools_metadata: List[Dict[str, Any]]) -> str:
     """Formats a list of tool metadata dictionaries into prompt-ready descriptions."""
     lines = []
@@ -96,14 +94,12 @@ def format_tool_descriptions(tools_metadata: List[Dict[str, Any]]) -> str:
 
     return "\n\n".join(lines)
 
-
 def get_react_system_prompt(tools_metadata: List[Dict[str, Any]], max_iterations: int = 15) -> str:
     """Builds the complete ReAct system prompt with dynamic tool specifications."""
     tools_str = format_tool_descriptions(tools_metadata)
     react_rules = REACT_INSTRUCTION.format(max_iterations=max_iterations)
     
     return f"{SYSTEM_PROMPT_PREFIX}\n\n### AVAILABLE TOOLS:\n{tools_str}\n\n{react_rules}"
-
 
 def get_challenge_1_prompt(ticker: str = "MSFT") -> str:
     """Generates the prompt for Challenge 1: Single-Company Profile."""
@@ -117,7 +113,6 @@ The report must include:
 6. Research Sources & Provenance: Explicit citation of all tools and source filings utilized.
 """
 
-
 def get_challenge_2_prompt(ticker: str = "AAPL") -> str:
     """Generates the prompt for Challenge 2: Quarterly Earnings Analysis."""
     return f"""Please analyze Apple Inc.'s (Ticker: {ticker}) most recent quarterly earnings report.
@@ -129,7 +124,6 @@ The report must include:
 5. Market Sentiment & Reaction: Financial news sentiment and Wall Street analyst revisions.
 6. Research Sources & Provenance: Explicit citation of filings and tools utilized.
 """
-
 
 def get_challenge_3_prompt(ticker: str = "TSLA") -> str:
     """Generates the prompt for Challenge 3: Tesla Risk Assessment."""
@@ -143,7 +137,6 @@ Your analysis must cover the following core risk dimensions with specific quanti
 6. Risk Mitigation & Catalysts: Energy Storage (Megapack) growth, FSD licensing prospects, next-gen low-cost platform, and balance sheet cash reserves.
 7. Methodology & Tool Provenance: Explicit citation of tools, SEC filings, financial metrics, and transcript sources used.
 """
-
 
 def get_challenge_4_prompt() -> str:
     """Generates the prompt for Challenge 4: Cloud Industry Comparison (AWS vs Azure vs GCP)."""
@@ -185,7 +178,6 @@ Your report must explicitly address and resolve the following key contradictions
    - Direct citation of tools, SEC Form 10-K/10-Q accessions, transcript remarks, and multi-source synthesis engine outputs.
 """
 
-
 def get_challenge_6_prompt(query: str = "What's happening with the banks?") -> str:
     """Generates the prompt for Challenge 6: Ambiguous Query Handling (Banking Sector Analysis)."""
     return f"""Research Query: "{query}"
@@ -208,7 +200,6 @@ You are given an intentionally ambiguous and broad query. You must execute struc
 4. Transparency Regarding Limitations:
    - Explicitly document boundaries, data gaps, graceful degradation, and analytical constraints.
 """
-
 
 def get_challenge_7_prompt(
     query: str = "Based on the companies you've already researched, what themes emerge across the technology sector? Identify cross-cutting risks and opportunities."
@@ -243,7 +234,6 @@ Required Sections:
    - Direct documentation of vector DB collection queries, retrieved chunk IDs, confidence scores, and historical session IDs.
 """
 
-
 def get_challenge_8_prompt(
     ticker: str = "NVDA",
     query: str = "Generate an institutional-grade investment research report on NVIDIA Corporation (NASDAQ: NVDA) under simulated high failure-rate conditions."
@@ -274,5 +264,4 @@ Required Sections (Comprehensive Institutional Report):
 9. Forward Guidance & 5-Year Scenario Analysis (Bull, Base, Bear Cases)
 10. Data Provenance, Resilience Log & Fallback Audit Trail
 """
-
 

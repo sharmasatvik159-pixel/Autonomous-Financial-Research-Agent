@@ -17,7 +17,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.Tools.FinancialAPI")
 
-
 class FinancialDataApiTool(BaseTool):
     """Tool that retrieves structured financial statements and key ratios."""
 
@@ -55,12 +54,10 @@ class FinancialDataApiTool(BaseTool):
             "years": years,
         }
 
-        # 1. Check cache
         cached = self.cache.get(self.name, cache_args)
         if cached:
             return cached
 
-        # 2. Rate limit
         self.rate_limiter.acquire(self.name, rps=5.0)
 
         result_payload: Dict[str, Any] = {}
@@ -69,7 +66,6 @@ class FinancialDataApiTool(BaseTool):
             yt = yf.Ticker(ticker_clean)
             info = yt.info or {}
 
-            # Extract statement data
             if statement_type == "income_statement":
                 fin_df = yt.financials if period == "annual" else yt.quarterly_financials
             elif statement_type == "balance_sheet":
@@ -81,7 +77,6 @@ class FinancialDataApiTool(BaseTool):
 
             statement_dict = {}
             if fin_df is not None and not fin_df.empty:
-                # Take top columns up to 'years'
                 cols = list(fin_df.columns)[:years]
                 for col in cols:
                     date_str = col.strftime("%Y-%m-%d") if hasattr(col, "strftime") else str(col)
@@ -110,7 +105,6 @@ class FinancialDataApiTool(BaseTool):
             logger.warning(f"Live financial data API retrieval failed for {ticker_clean}: {e}")
             result_payload = self._generate_fallback_data(ticker_clean, statement_type)
 
-        # Cache for 1 hour
         self.cache.set(self.name, cache_args, result_payload, ttl_seconds=3600)
         return result_payload
 

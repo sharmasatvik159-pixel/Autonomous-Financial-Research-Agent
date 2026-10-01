@@ -17,7 +17,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.Tools.SEC")
 
-# Well-known CIK mappings for primary research coverage
 TICKER_TO_CIK = {
     "MSFT": "0000789019",
     "AAPL": "0000320193",
@@ -31,7 +30,6 @@ TICKER_TO_CIK = {
     "GS": "0000886982",
     "MS": "0000895421",
 }
-
 
 class SecFilingSearchTool(BaseTool):
     """Tool that retrieves official corporate filings from SEC EDGAR."""
@@ -59,16 +57,13 @@ class SecFilingSearchTool(BaseTool):
         ticker_clean = ticker.strip().upper()
         filing_clean = filing_type.strip().upper()
 
-        # 1. Check cache first
         cache_args = {"ticker": ticker_clean, "filing_type": filing_clean, "year": year}
         cached = self.cache.get(self.name, cache_args)
         if cached:
             return cached
 
-        # 2. Enforce rate limit (10 requests/sec statutory limit)
         self.rate_limiter.acquire(self.name, rps=10.0)
 
-        # 3. Headers require firm and email
         headers = {
             "User-Agent": self.settings.SEC_EDGAR_USER_AGENT,
             "Accept-Encoding": "gzip, deflate",
@@ -120,11 +115,9 @@ class SecFilingSearchTool(BaseTool):
             except Exception as e:
                 logger.warning(f"SEC EDGAR live request failed: {e}. Generating structured fallback.")
 
-        # Fallback if SEC API returned nothing or offline
         if not result_payload:
             result_payload = self._generate_structured_fallback(ticker_clean, filing_clean, year)
 
-        # Cache for 24 hours
         self.cache.set(self.name, cache_args, result_payload, ttl_seconds=86400)
         return result_payload
 

@@ -5,7 +5,6 @@ import tempfile
 import shutil
 from memory.vector_store import FinancialVectorStore, ResearchDocument
 
-
 @pytest.fixture
 def temp_vector_store():
     """Provides a temporary vector store instance cleaned up after test execution."""
@@ -14,7 +13,6 @@ def temp_vector_store():
     yield store
     store.close()
     shutil.rmtree(tmp_dir, ignore_errors=True)
-
 
 def test_vector_store_add_and_count(temp_vector_store):
     """Verify document insertion and count tracking."""
@@ -44,7 +42,6 @@ def test_vector_store_add_and_count(temp_vector_store):
     assert store.count(ticker="NVDA") == 1
     assert store.count(ticker="AAPL") == 1
 
-
 def test_vector_store_search_with_filter(temp_vector_store):
     """Verify semantic search and metadata filtering."""
     store = temp_vector_store
@@ -58,16 +55,13 @@ def test_vector_store_search_with_filter(temp_vector_store):
     )
     store.add_document(doc)
 
-    # Search with matching ticker
     matches = store.search("automotive gross margin", ticker="TSLA", top_k=3)
     assert len(matches) == 1
     assert matches[0].document.ticker == "TSLA"
     assert matches[0].document.verified is False
 
-    # Search with non-matching ticker
     empty_matches = store.search("automotive gross margin", ticker="GOOGL", top_k=3)
     assert len(empty_matches) == 0
-
 
 def test_vector_store_get_and_delete(temp_vector_store):
     """Verify retrieval by ID and document deletion."""
@@ -88,7 +82,6 @@ def test_vector_store_get_and_delete(temp_vector_store):
     store.delete_by_id("msft-risk-001")
     assert store.get_by_id("msft-risk-001") is None
     assert store.count() == 0
-
 
 def test_document_chunker_sec_filing():
     """Verify section-aware chunking for SEC filings with Item boundaries."""
@@ -118,20 +111,17 @@ def test_document_chunker_sec_filing():
     )
 
     assert len(chunks) >= 3
-    # Check that section tags are preserved
     tags = [c.metadata.get("section_tag") for c in chunks]
     assert "item1" in tags
     assert "item1a" in tags
     assert "item7" in tags
 
-    # Verify ID format and metadata
     for c in chunks:
         assert c.ticker == "MSFT"
         assert c.source_type == "10-K"
         assert c.confidence == 0.98
         assert c.verified is True
         assert "MSFT 10-K (2024)" in c.content
-
 
 def test_document_chunker_transcript_qa():
     """Verify earnings call transcript chunking with Q&A speaker pairing."""
@@ -159,11 +149,9 @@ def test_document_chunker_transcript_qa():
     )
 
     assert len(chunks) >= 2
-    # Verify that Analyst Question and Executive Answer are paired in the chunk
     qa_chunks = [c for c in chunks if c.metadata.get("segment") in ("qa_pair", "qa_dialogue")]
     assert len(qa_chunks) >= 1
     assert any("Keith Weiss" in c.content and "Satya Nadella" in c.content for c in qa_chunks)
-
 
 def test_document_chunker_news():
     """Verify news chunking with headline, publisher, and timestamp prepend."""
@@ -190,22 +178,18 @@ def test_document_chunker_news():
     assert chunks[0].ticker == "MSFT"
     assert chunks[0].source_type == "news"
 
-
 def test_vector_store_ingestion_pipelines(temp_vector_store):
     """Verify high-level ingestion pipelines in FinancialVectorStore."""
     store = temp_vector_store
 
-    # Ingest filing
     filing_text = "ITEM 1. BUSINESS\nApple designs smartphones and tablets.\n\nITEM 1A. RISK FACTORS\nSupply chains in Asia."
     ids1 = store.ingest_filing(filing_text, ticker="AAPL", filing_type="10-K", year=2024)
     assert len(ids1) >= 2
     assert store.count(ticker="AAPL") >= 2
 
-    # Ingest news
     ids2 = store.ingest_news("Apple AI Launch", "Apple announced new generative features.", ticker="AAPL", publisher="Bloomberg")
     assert len(ids2) >= 1
     assert store.count(ticker="AAPL") == len(ids1) + len(ids2)
-
 
 def test_context_manager_operations():
     """Verify ContextManager token estimation, observation compaction, and progressive summarization."""
@@ -213,10 +197,8 @@ def test_context_manager_operations():
 
     cm = ContextManager(config=ContextBudgetConfig(max_history_tokens=100, preserve_recent_steps=1))
 
-    # Test token estimation
     assert cm.estimate_tokens("Hello financial world") > 0
 
-    # Test observation compaction of structured JSON
     structured_data = {
         "ticker": "MSFT",
         "annual_metrics": [
@@ -228,7 +210,6 @@ def test_context_manager_operations():
     assert "| year | revenue | operating_margin |" in compacted
     assert "$245B" in compacted
 
-    # Test progressive summarization
     history = [
         "Research Query: Microsoft financial overview",
         "Thought: Step 1 find profile",
@@ -248,7 +229,6 @@ def test_context_manager_operations():
     assert "Thought: Step 3 finalize analysis" in joined_res
     assert cm.get_metrics()["total_compressions"] >= 1
 
-
 def test_episodic_memory_store_operations():
     """Verify EpisodicMemoryStore recording, error recovery, and strategy retrieval."""
     import tempfile
@@ -259,10 +239,8 @@ def test_episodic_memory_store_operations():
         store_path = Path(tmp_dir) / "test_episodes.json"
         store = EpisodicMemoryStore(persist_path=str(store_path))
 
-        # Initial baseline seeds present
         assert store.count() >= 2
 
-        # Record new episode
         rec = EpisodicRecord(
             query="Analyze NVIDIA GPU data center margins",
             query_type="earnings_analysis",
@@ -276,7 +254,6 @@ def test_episodic_memory_store_operations():
         assert saved_id.startswith("ep-")
         assert store.count() >= 3
 
-        # Record error recovery path
         store.record_error_recovery(
             failed_tool="sec_filing_search",
             error_message="EDGAR 429 Too Many Requests",
@@ -289,7 +266,6 @@ def test_episodic_memory_store_operations():
         assert len(recovs) >= 1
         assert any(r.recovery_tool == "web_search" for r in recovs)
 
-        # Retrieve strategy
         strategies = store.retrieve_strategy("NVIDIA margin analysis", target_ticker="NVDA", top_k=1)
         assert len(strategies) >= 1
         assert strategies[0].target_ticker == "NVDA"
@@ -297,7 +273,6 @@ def test_episodic_memory_store_operations():
         formatted = store.format_strategy_for_planner(strategies)
         assert "Procedural Insights" in formatted
         assert "financial_data_api" in formatted
-
 
 def test_memory_tools_integration():
     """Verify VectorDbSearchTool and VectorDbStoreTool via ToolRegistry."""
@@ -312,7 +287,6 @@ def test_memory_tools_integration():
     search_tool = VectorDbSearchTool(vector_store=vstore)
     store_tool = VectorDbStoreTool(vector_store=vstore)
 
-    # 1. Store a document via VectorDbStoreTool
     store_res = store_tool(
         content="Alphabet Google Cloud achieved $10B quarterly revenue run rate with 11% operating margin.",
         metadata={"ticker": "GOOGL", "source_type": "earnings_call", "confidence": 0.94, "verified": True}
@@ -321,7 +295,6 @@ def test_memory_tools_integration():
     assert store_res.data["status"] == "stored"
     assert store_res.data["ticker"] == "GOOGL"
 
-    # 2. Search via VectorDbSearchTool
     search_res = search_tool(
         query="Google Cloud revenue run rate",
         top_k=2,

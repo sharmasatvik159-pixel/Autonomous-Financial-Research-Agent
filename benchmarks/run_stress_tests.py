@@ -21,7 +21,6 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -41,7 +40,6 @@ CONCURRENT_TASKS = [
     {"id": "task-04", "ticker": "NVDA", "query": "Model NVIDIA Blackwell B200 Supply Chain and DCF Intrinsic Value"},
     {"id": "task-05", "ticker": "PLTR", "query": "Reconcile Palantir GAAP Operating Margins vs Non-GAAP SBC Realities"},
 ]
-
 
 def run_single_research_task(task: Dict[str, Any]) -> Dict[str, Any]:
     """Worker function for concurrent research execution."""
@@ -89,7 +87,6 @@ def run_single_research_task(task: Dict[str, Any]) -> Dict[str, Any]:
             "error": str(exc),
         }
 
-
 def run_concurrency_stress_test(num_workers: int = 5) -> List[Dict[str, Any]]:
     """Runs 5 concurrent research tasks simultaneously to verify process and memory stability."""
     print("=" * 80)
@@ -110,14 +107,12 @@ def run_concurrency_stress_test(num_workers: int = 5) -> List[Dict[str, Any]]:
     print(f"\n[+] Concurrency stress test completed in {total_elapsed:.2f}s.")
     return results
 
-
 def run_context_window_stress_test() -> Dict[str, Any]:
     """Tests maximum context window retention with large 100,000+ character transcript chunks."""
     print("\n" + "=" * 80)
     print("[*] RUNNING MAXIMUM CONTEXT WINDOW RETENTION STRESS TEST")
     print("=" * 80)
 
-    # Generate synthetic massive multi-quarter earnings conference call stream (120,000 chars)
     raw_transcript_stream = []
     speakers = ["Tim Cook (CEO)", "Luca Maestri (CFO)", "Analyst Shannon Cross", "Analyst Amit Daryanani"]
     topics = [
@@ -142,7 +137,6 @@ def run_context_window_stress_test() -> Dict[str, Any]:
 
     print(f"    [+] Created massive transcript stream: {char_count:,} characters (~{estimated_tokens:,} tokens).")
 
-    # Ingest into ContextManager configured with strict working memory budget
     config = ContextBudgetConfig(
         max_context_tokens=128000,
         max_history_tokens=6000,
@@ -150,7 +144,6 @@ def run_context_window_stress_test() -> Dict[str, Any]:
     )
     cm = ContextManager(config=config)
 
-    # Build ReAct history lines stream
     step_size = len(raw_transcript_stream) // 5
     history_lines = [
         "Research Query: Comprehensive quarterly earnings transcript and guidance evaluation",
@@ -189,7 +182,6 @@ def run_context_window_stress_test() -> Dict[str, Any]:
         "critical_numbers_preserved": True,
         "retention_duration_seconds": round(compact_duration, 4),
     }
-
 
 def generate_stress_test_report(
     concurrency_results: List[Dict[str, Any]],
@@ -256,7 +248,6 @@ def generate_stress_test_report(
         with open(p, "w", encoding="utf-8") as f:
             f.write(full_md)
 
-
 def generate_token_usage_analysis(
     concurrency_results: List[Dict[str, Any]],
     context_results: Dict[str, Any],
@@ -316,20 +307,16 @@ def generate_token_usage_analysis(
         with open(p, "w", encoding="utf-8") as f:
             f.write(full_md)
 
-
 def run_full_stress_and_token_suite():
     """Runs full stress tests and writes all reports."""
     print("=" * 80)
     print("ARA-1 COMPREHENSIVE SYSTEM STRESS TESTS & TOKEN USAGE ANALYSIS")
     print("=" * 80)
 
-    # 1. Concurrency
     concurrency_results = run_concurrency_stress_test(num_workers=5)
 
-    # 2. Context Retention
     context_results = run_context_window_stress_test()
 
-    # 3. Generate Stress Test Report
     docs_stress = os.path.abspath(os.path.join(ROOT_DIR, "docs", "stress_test_report.md"))
     results_stress = os.path.abspath(os.path.join(ROOT_DIR, "results", "stress_test_report.md"))
     generate_stress_test_report(concurrency_results, context_results, docs_stress, results_stress)
@@ -337,7 +324,6 @@ def run_full_stress_and_token_suite():
     print(f"    - {docs_stress}")
     print(f"    - {results_stress}")
 
-    # 4. Generate Token Usage Analysis
     docs_token = os.path.abspath(os.path.join(ROOT_DIR, "docs", "token_usage_analysis.md"))
     results_token = os.path.abspath(os.path.join(ROOT_DIR, "results", "token_usage_analysis.md"))
     generate_token_usage_analysis(concurrency_results, context_results, docs_token, results_token)
@@ -348,7 +334,6 @@ def run_full_stress_and_token_suite():
     print("\n" + "=" * 80)
     print("STRESS TESTING & TOKEN ANALYSIS COMPLETE (100% SUCCESS)")
     print("=" * 80)
-
 
 if __name__ == "__main__":
     run_full_stress_and_token_suite()

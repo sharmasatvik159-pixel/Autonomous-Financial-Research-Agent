@@ -33,7 +33,6 @@ from agent.logger import get_agent_logger
 
 logger = logging.getLogger("ARA1.LLMClient")
 
-# Token pricing approximations per 1M tokens (USD)
 MODEL_PRICING = {
     "gpt-4o": {"input": 5.00, "output": 15.00},
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
@@ -41,7 +40,6 @@ MODEL_PRICING = {
     "text-embedding-3-small": {"input": 0.02, "output": 0.00},
     "text-embedding-3-large": {"input": 0.13, "output": 0.00},
 }
-
 
 class TokenUsageRecord(BaseModel):
     """Cumulative token tracking record."""
@@ -69,7 +67,6 @@ class TokenUsageRecord(BaseModel):
         call_cost = (prompt * pricing["input"] / 1_000_000.0) + (completion * pricing["output"] / 1_000_000.0)
         self.estimated_cost_usd += call_cost
 
-
 class LLMResponse(BaseModel):
     """Normalized response structure from LLM call."""
     content: str
@@ -80,7 +77,6 @@ class LLMResponse(BaseModel):
     latency_seconds: float = 0.0
     cost_usd: float = 0.0
     model: str = ""
-
 
 class MockChatModel:
     """Offline mock model providing deterministic responses for unit testing."""
@@ -93,7 +89,7 @@ class MockChatModel:
         messages: List[BaseMessage],
         tools: Optional[List[Dict[str, Any]]] = None
     ) -> AIMessage:
-        time.sleep(0.02)  # Simulate small network latency
+        time.sleep(0.02)
         last_msg = messages[-1].content if messages else ""
         content = (
             f"MOCK_ANALYSIS: Processed query successfully. "
@@ -103,7 +99,6 @@ class MockChatModel:
             content=content,
             response_metadata={"token_usage": {"prompt_tokens": 85, "completion_tokens": 42}}
         )
-
 
 class LLMClient:
     """Resilient LLM client for ARA-1 with Tenacity retries and token metrics."""
@@ -122,7 +117,6 @@ class LLMClient:
         self.usage = TokenUsageRecord()
         self.agent_logger = get_agent_logger()
 
-        # Decide whether to use real ChatOpenAI or MockChatModel
         self.is_mock = force_mock or self.settings.MOCK_MODE or not self.settings.is_openai_configured()
 
         if self.is_mock:
@@ -136,7 +130,7 @@ class LLMClient:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 api_key=self.settings.OPENAI_API_KEY,
-                max_retries=1,  # Tenacity handles retries explicitly
+                max_retries=1,
             )
 
     @retry(
@@ -153,7 +147,6 @@ class LLMClient:
     ) -> Any:
         """Invokes model under tenacity retry guard."""
         if hasattr(self._chat_model, "bind_tools") and tools:
-            # Bind tools if supported
             bound_model = self._chat_model.bind_tools(tools)
             return bound_model.invoke(messages)
         return self._chat_model.invoke(messages)
@@ -175,13 +168,11 @@ class LLMClient:
             ai_msg = self._execute_with_retry(messages, tools=tools)
             latency = time.perf_counter() - start_time
 
-            # Extract token metadata
             meta = getattr(ai_msg, "response_metadata", {}) or {}
             usage_dict = meta.get("token_usage", {}) or meta.get("usage", {})
             prompt_tokens = usage_dict.get("prompt_tokens", len(str(messages)) // 4)
             completion_tokens = usage_dict.get("completion_tokens", len(ai_msg.content) // 4)
 
-            # Extract tool calls if present
             tool_calls = []
             if hasattr(ai_msg, "tool_calls") and ai_msg.tool_calls:
                 for tc in ai_msg.tool_calls:
@@ -191,13 +182,11 @@ class LLMClient:
                         "id": tc.get("id"),
                     })
 
-            # Record usage
             self.usage.add(prompt_tokens, completion_tokens, latency, self.model_name)
 
             pricing = MODEL_PRICING.get(self.model_name, {"input": 0.15, "output": 0.60})
             cost = (prompt_tokens * pricing["input"] + completion_tokens * pricing["output"]) / 1_000_000.0
 
-            # Log to agent logger
             self.agent_logger.log_llm_call(
                 model=self.model_name,
                 prompt_tokens=prompt_tokens,

@@ -17,7 +17,6 @@ from tools.schemas import ReportGeneratorInput
 
 logger = logging.getLogger("ARA1.ReportGeneratorTool")
 
-
 class ReportGeneratorTool(BaseTool):
     """Tool for formatting analyzed financial data into structured institutional Markdown reports."""
 
@@ -52,14 +51,12 @@ class ReportGeneratorTool(BaseTool):
 
         report_lines = []
 
-        # Document Header & Metadata
         title = sec_dict.get("title") or sec_dict.get("report_title") or "Institutional Equity Research Report"
         report_lines.append(f"# {title}")
         report_lines.append(f"**Publication Date:** {datetime.now(timezone.utc).strftime('%B %d, %Y')} | **Research Division:** ARA-1 Autonomous Research Engine")
         report_lines.append(f"**Investment Classification:** Institutional Equity Research | **Template:** `{t_clean}`")
         report_lines.append("\n---\n")
 
-        # Render sections in order
         for sec_name, sec_content in sec_dict.items():
             if sec_name.lower() in ("title", "report_title"):
                 continue
@@ -89,7 +86,6 @@ class ReportGeneratorTool(BaseTool):
             else:
                 report_lines.append(f"{str(sec_content).strip()}\n")
 
-        # Source Reliability Hierarchy Citations
         report_lines.append("\n---\n")
         report_lines.append("## Research Methodology & Source Data Provenance")
         report_lines.append("All quantitative data cross-referenced adhering to the Corrected Source Reliability Hierarchy:")

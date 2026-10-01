@@ -191,8 +191,8 @@ AGENTIC AI - AUTONOMOUS FINANCIAL RESEARCH/
 ### 2. Environment Setup
 ```bash
 # Clone the repository
-git clone https://github.com/ZethetaIntern/Project1A-AutonomousFinancialResearchAgent.git
-cd Project1A-AutonomousFinancialResearchAgent
+git clone https://github.com/sharmasatvik159-pixel/Autonomous-Financial-Research-Agent.git
+cd Autonomous-Financial-Research-Agent
 
 # Create and activate virtual environment
 python -m venv venv

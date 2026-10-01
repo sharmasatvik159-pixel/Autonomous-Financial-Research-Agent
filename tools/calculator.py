@@ -16,7 +16,6 @@ from tools.schemas import CalculationEngineInput
 
 logger = logging.getLogger("ARA1.CalculationEngine")
 
-
 class CalculationEngineTool(BaseTool):
     """Tool for deterministic quantitative financial modeling, DCF, and ratio analysis."""
 
@@ -62,10 +61,8 @@ class CalculationEngineTool(BaseTool):
 
     def _calculate_dcf(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Calculates multi-stage Discounted Cash Flow (DCF) enterprise and equity valuation."""
-        # Required parameters
         fcfs = inputs.get("free_cash_flows")
         if not fcfs or not isinstance(fcfs, list):
-            # If given base_fcf and growth_rate
             base_fcf = float(inputs.get("base_fcf", 1000.0))
             fcf_growth = float(inputs.get("fcf_growth", 0.10))
             forecast_years = int(inputs.get("forecast_years", 5))
@@ -81,7 +78,6 @@ class CalculationEngineTool(BaseTool):
         if discount_rate <= terminal_growth:
             raise ValueError("Discount rate (WACC) must be strictly greater than terminal growth rate.")
 
-        # 1. Present value of forecast period FCFs
         pv_fcfs = []
         discount_factors = []
         for year, fcf in enumerate(fcfs, start=1):
@@ -92,13 +88,11 @@ class CalculationEngineTool(BaseTool):
 
         pv_forecast_sum = sum(pv_fcfs)
 
-        # 2. Terminal Value (Gordon Growth Model)
         final_fcf = fcfs[-1]
         terminal_fcf = final_fcf * (1.0 + terminal_growth)
         terminal_value = terminal_fcf / (discount_rate - terminal_growth)
         pv_terminal_value = terminal_value / ((1.0 + discount_rate) ** len(fcfs))
 
-        # 3. Enterprise Value & Equity Value
         enterprise_value = pv_forecast_sum + pv_terminal_value
         equity_value = enterprise_value - net_debt
         implied_share_price = equity_value / shares_outstanding if shares_outstanding > 0 else 0.0

@@ -12,7 +12,6 @@ from typing import Dict
 
 logger = logging.getLogger("ARA1.RateLimiter")
 
-
 class TokenBucket:
     """Token bucket rate limiter for a specific API domain."""
 
@@ -36,11 +35,9 @@ class TokenBucket:
                     self.tokens -= 1.0
                     return
 
-                # Calculate sleep duration until 1 token is accumulated
                 deficit = 1.0 - self.tokens
                 sleep_time = deficit / self.rate
                 time.sleep(sleep_time)
-
 
 class APIRateLimiter:
     """Central coordinator of per-tool rate limits."""
@@ -52,9 +49,8 @@ class APIRateLimiter:
     def get_limiter(self, tool_name: str, default_rps: float = 5.0) -> TokenBucket:
         with self._lock:
             if tool_name not in self._limiters:
-                # Specific rate limits defined by Section E4
                 if tool_name == "sec_filing_search":
-                    rps = 10.0  # SEC EDGAR statutory limit
+                    rps = 10.0
                 elif tool_name == "financial_data_api":
                     rps = 5.0
                 elif tool_name == "web_search":
@@ -71,9 +67,7 @@ class APIRateLimiter:
         limiter = self.get_limiter(tool_name, default_rps=rps)
         limiter.acquire()
 
-
 _GLOBAL_RATE_LIMITER: Optional[APIRateLimiter] = None
-
 
 def get_rate_limiter(tool_name: Optional[str] = None, rate_per_second: float = 5.0) -> Any:
     """Singleton getter for APIRateLimiter or a specific tool's TokenBucket."""

@@ -20,7 +20,6 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger("ARA1.Synthesis.ConflictResolver")
 
-
 class SourceTier:
     """Standardized source hierarchy definitions and priority order."""
     TIER_1_SEC = 1
@@ -45,7 +44,6 @@ class SourceTier:
         5: "Tier 5: Crowdsourced / Unverified Web Commentary",
     }
 
-
 class DataPoint(BaseModel):
     """Represents a specific metric observation retrieved from a source."""
     metric_name: str
@@ -63,7 +61,6 @@ class DataPoint(BaseModel):
     def confidence(self) -> float:
         return SourceTier.TIER_CONFIDENCE.get(self.tier, 0.5)
 
-
 class DiscrepancyLog(BaseModel):
     """Detailed record of a detected contradiction across data sources."""
     metric_name: str
@@ -76,7 +73,6 @@ class DiscrepancyLog(BaseModel):
     )
     explanation: str
     variance_percentage: Optional[float] = None
-
 
 class ConflictResolver:
     """Detects, categorizes, and resolves conflicting financial claims."""
@@ -115,11 +111,9 @@ class ConflictResolver:
 
         metric_name = data_points[0].metric_name
 
-        # Sort primarily by tier (ascending: 1 > 2 > 3 > 4 > 5), secondarily by recency/citation
         sorted_points = sorted(data_points, key=lambda p: (p.tier, 0 if p.is_gaap else 1))
         winner = sorted_points[0]
 
-        # Check if values conflict
         has_conflict = False
         variance_pct: Optional[float] = None
         comp_val = winner.value
@@ -140,10 +134,8 @@ class ConflictResolver:
                 break
 
         if not has_conflict:
-            # Values are congruent within tolerance
             return winner, None
 
-        # Analyze root cause of conflict
         resolution_status, explanation = self._diagnose_conflict_cause(winner, sorted_points[1:], variance_pct)
 
         discrepancy = DiscrepancyLog(
@@ -183,7 +175,6 @@ class ConflictResolver:
         variance_pct: Optional[float]
     ) -> Tuple[str, str]:
         """Diagnoses why sources diverged (GAAP vs Non-GAAP, Segmental vs Consolidated, Temporal, or Tier Hierarchy)."""
-        # 1. GAAP vs Non-GAAP distinction
         has_gaap = any(p.is_gaap is True for p in [winner] + competing_points)
         has_nongaap = any(p.is_gaap is False for p in [winner] + competing_points)
         if has_gaap and has_nongaap:
@@ -193,14 +184,12 @@ class ConflictResolver:
                 f"Authoritative source {winner.source_type} (Tier {winner.tier}) prioritized."
             )
 
-        # 2. Segmental vs Consolidated reporting
         if any(p.is_segmental for p in competing_points) or winner.is_segmental:
             return (
                 "SEGMENTAL_VS_CONSOLIDATED",
                 f"Discrepancy originates from conflating divisional or geographical segment growth with consolidated corporate totals."
             )
 
-        # 3. Temporal Reporting Lag
         dates = [p.date for p in [winner] + competing_points if p.date]
         if len(set(dates)) > 1:
             return (
@@ -208,7 +197,6 @@ class ConflictResolver:
                 f"Discrepancy stems from temporal reporting mismatch across distinct quarters or release cycles ({', '.join(set(dates))})."
             )
 
-        # 4. Standard Source Hierarchy Override
         other_tiers = [p.tier for p in competing_points]
         return (
             "RESOLVED_BY_HIERARCHY",

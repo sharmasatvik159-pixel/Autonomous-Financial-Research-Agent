@@ -12,7 +12,6 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure root directory in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -20,7 +19,6 @@ from agent.core import FinancialResearchAgent
 from agent.llm_client import LLMClient, MockChatModel
 from tools.tool_registry import create_default_registry
 from config.settings import get_settings
-
 
 class Challenge2MockLLM(MockChatModel):
     """Context-aware mock LLM that follows the ReAct cycle for Apple Earnings Analysis."""
@@ -31,7 +29,6 @@ class Challenge2MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Pull financial statements and quarterly metrics via financial_data_api
         if self.step == 1:
             content = (
                 "Thought: To analyze Apple's quarterly earnings, I must first query the financial data API "
@@ -39,7 +36,6 @@ class Challenge2MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"AAPL\", \"statement_type\": \"income_statement\", \"period\": \"quarterly\", \"years\": 2}"
             )
-        # Step 2: Query SEC filing search for official 10-Q filing
         elif self.step == 2:
             content = (
                 "Thought: I need to verify the official quarterly filing date and accession details from SEC EDGAR "
@@ -47,7 +43,6 @@ class Challenge2MockLLM(MockChatModel):
                 "Action: sec_filing_search\n"
                 "Action Input: {\"ticker\": \"AAPL\", \"filing_type\": \"10-Q\"}"
             )
-        # Step 3: Run news sentiment analysis on earnings reactions
         elif self.step == 3:
             content = (
                 "Thought: Now I need to gauge market sentiment and Wall Street reaction using financial NLP "
@@ -55,7 +50,6 @@ class Challenge2MockLLM(MockChatModel):
                 "Action: news_sentiment\n"
                 "Action Input: {\"query\": \"Apple Q4 earnings results iPhone Services consensus beat\", \"num_articles\": 4, \"lookback_days\": 30}"
             )
-        # Step 4: Web search for consensus beats/misses and forward guidance
         elif self.step == 4:
             content = (
                 "Thought: To complete the comparative analysis, I need Wall Street consensus estimates vs actuals "
@@ -63,7 +57,6 @@ class Challenge2MockLLM(MockChatModel):
                 "Action: web_search\n"
                 "Action Input: {\"query\": \"Apple quarterly earnings consensus EPS revenue beat guidance Tim Cook Luca Maestri\", \"num_results\": 3}"
             )
-        # Step 5: Final Report Synthesis
         else:
             content = (
                 "Thought: I have gathered comprehensive quarterly financial data, SEC EDGAR filing verifications, "
@@ -131,7 +124,6 @@ class Challenge2MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 140, "completion_tokens": 260}})
 
-
 def run_challenge_2(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 2 end-to-end and writes results/challenge_2.md."""
     settings = get_settings()
@@ -142,7 +134,6 @@ def run_challenge_2(output_dir: Optional[str] = None) -> str:
     print("ARA-1 RESEARCH RUNNER: CHALLENGE 2 (Apple Inc. Earnings Analysis)")
     print("=" * 70)
 
-    # Use context-aware mock LLM when offline/mock mode is active
     if settings.MOCK_MODE or not settings.is_openai_configured():
         custom_llm = LLMClient(force_mock=True)
         custom_llm._chat_model = Challenge2MockLLM()
@@ -171,14 +162,12 @@ def run_challenge_2(output_dir: Optional[str] = None) -> str:
     print(f"Termination Reason: {result.terminated_reason}")
     print(f"Tools Invoked: {[tc['tool'] for tc in result.tool_calls]}")
 
-    # Write output to results/challenge_2.md
     target_file = out_dir / "challenge_2.md"
     with open(target_file, "w", encoding="utf-8") as f:
         f.write(result.report)
 
     print(f"\nReport successfully saved to: {target_file}")
     return result.report
-
 
 if __name__ == "__main__":
     run_challenge_2()

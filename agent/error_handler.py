@@ -14,21 +14,18 @@ from functools import wraps
 
 logger = logging.getLogger("ARA1.Resilience.ErrorHandler")
 
-
 class ErrorSeverity(str, Enum):
-    TRANSIENT = "TRANSIENT"      # Rate limits, timeouts, 502/503/504 -> Retry with backoff
-    DEGRADED = "DEGRADED"        # 404, data gap, format error -> Trigger fallback tool
-    FATAL = "FATAL"              # 401 Unauthorized, invalid schema -> Halt or abort chain
-
+    TRANSIENT = "TRANSIENT"
+    DEGRADED = "DEGRADED"
+    FATAL = "FATAL"
 
 class ErrorCategory(str, Enum):
-    RATE_LIMIT = "RATE_LIMIT"          # HTTP 429 Too Many Requests
-    TIMEOUT = "TIMEOUT"                # RequestTimeout, ConnectionTimeout
-    SERVER_5XX = "SERVER_5XX"          # 500, 502, 503, 504
-    CLIENT_4XX = "CLIENT_4XX"          # 400, 404, 422
-    SCHEMA_ERROR = "SCHEMA_ERROR"      # Pydantic validation failure
+    RATE_LIMIT = "RATE_LIMIT"
+    TIMEOUT = "TIMEOUT"
+    SERVER_5XX = "SERVER_5XX"
+    CLIENT_4XX = "CLIENT_4XX"
+    SCHEMA_ERROR = "SCHEMA_ERROR"
     UNKNOWN = "UNKNOWN"
-
 
 def classify_error(exc: Exception) -> Tuple[ErrorCategory, ErrorSeverity]:
     """Classifies an exception into a domain category and severity level."""
@@ -48,7 +45,6 @@ def classify_error(exc: Exception) -> Tuple[ErrorCategory, ErrorSeverity]:
     else:
         return ErrorCategory.UNKNOWN, ErrorSeverity.DEGRADED
 
-
 def calculate_backoff_with_jitter(
     attempt: int,
     base_delay: float = 1.0,
@@ -64,7 +60,6 @@ def calculate_backoff_with_jitter(
     jitter = random.uniform(-jitter_range, jitter_range)
     final_delay = max(0.05, exp_delay + jitter)
     return round(final_delay, 3)
-
 
 def retry_with_backoff(
     max_retries: int = 3,
@@ -87,7 +82,6 @@ def retry_with_backoff(
                     last_exception = e
                     cat, severity = classify_error(e)
 
-                    # If not transient, fail fast and allow fallback to take over
                     if severity != ErrorSeverity.TRANSIENT or attempt == max_retries:
                         logger.warning(
                             f"Execution of '{func.__name__}' failed on attempt {attempt}/{max_retries} "

@@ -19,15 +19,13 @@ from agent.circuit_breaker import get_circuit_breaker_registry, CircuitBreakerOp
 
 logger = logging.getLogger("ARA1.Resilience.FallbackChains")
 
-
 class FallbackStep(BaseModel):
     """Represents a specific fallback hop in a tool failure recovery sequence."""
     hop_number: int
     tool_name: str
     adapted_arguments: Dict[str, Any]
-    status: str = "PENDING"  # PENDING, SUCCESS, FAILED, SKIPPED_CIRCUIT_OPEN
+    status: str = "PENDING"
     error_message: Optional[str] = None
-
 
 class FallbackExecutionResult(BaseModel):
     """Envelope returned when executing a tool call through its fallback chain."""
@@ -41,11 +39,9 @@ class FallbackExecutionResult(BaseModel):
     data_gap_reason: Optional[str] = None
     degraded_summary: Optional[str] = None
 
-
 class FallbackChainCoordinator:
     """Manages fallback hierarchies and dynamically translates parameters between tools."""
 
-    # Default fallback hierarchies defined in Section B1 & B2
     DEFAULT_CHAINS: Dict[str, List[str]] = {
         "financial_data_api": ["sec_filing_search", "web_search", "vector_db_search"],
         "sec_filing_search": ["financial_data_api", "web_search"],
@@ -73,7 +69,6 @@ class FallbackChainCoordinator:
         """Translates argument schemas when routing between disparate tools."""
         ticker = original_args.get("ticker", "")
 
-        # 1. financial_data_api -> sec_filing_search
         if from_tool == "financial_data_api" and to_tool == "sec_filing_search":
             return {
                 "ticker": ticker,
@@ -81,7 +76,6 @@ class FallbackChainCoordinator:
                 "section": "Item 8" if "income" in original_args.get("statement_type", "") else "Item 7",
             }
 
-        # 2. sec_filing_search -> financial_data_api
         elif from_tool == "sec_filing_search" and to_tool == "financial_data_api":
             return {
                 "ticker": ticker,
@@ -90,7 +84,6 @@ class FallbackChainCoordinator:
                 "years": 2,
             }
 
-        # 3. Any tool -> web_search
         elif to_tool == "web_search":
             if "query" in original_args:
                 return {"query": original_args["query"], "num_results": original_args.get("num_results", 3)}
@@ -100,7 +93,6 @@ class FallbackChainCoordinator:
                 "num_results": 3,
             }
 
-        # 4. Any tool -> vector_db_search
         elif to_tool == "vector_db_search":
             q = original_args.get("query") or f"{ticker} financial operating metrics"
             return {
@@ -109,7 +101,6 @@ class FallbackChainCoordinator:
                 "top_k": 3,
             }
 
-        # 5. earnings_transcript -> sec_filing_search
         elif from_tool == "earnings_transcript" and to_tool == "sec_filing_search":
             return {
                 "ticker": ticker,
@@ -117,11 +108,9 @@ class FallbackChainCoordinator:
                 "section": "Item 7",
             }
 
-        # 6. peer_comparison -> company_profile
         elif from_tool == "peer_comparison" and to_tool == "company_profile":
             return {"ticker": ticker}
 
-        # Default: pass-through if keys overlap
         return dict(original_args)
 
     def execute_with_fallback(
@@ -150,7 +139,6 @@ class FallbackChainCoordinator:
                 adapted_arguments=adapted_args,
             )
 
-            # Check circuit breaker
             if self.circuit_registry.is_tool_open(current_tool):
                 step.status = "SKIPPED_CIRCUIT_OPEN"
                 step.error_message = f"Circuit breaker OPEN for {current_tool}."
@@ -162,7 +150,6 @@ class FallbackChainCoordinator:
                 logger.info(f"Dispatching tool '{current_tool}' (Hop {hop_idx}/{len(chain)}).")
                 result = tool_executor(current_tool, adapted_args)
 
-                # Check if tool execution reported an internal failure
                 success = getattr(result, "success", True)
                 if not success:
                     err = getattr(result, "error", "Execution failed")
@@ -172,7 +159,6 @@ class FallbackChainCoordinator:
                     hops_taken.append(step)
                     continue
 
-                # Succeeded!
                 self.circuit_registry.record_success(current_tool)
                 step.status = "SUCCESS"
                 hops_taken.append(step)
@@ -194,7 +180,6 @@ class FallbackChainCoordinator:
                 hops_taken.append(step)
                 logger.warning(f"Hop {hop_idx} ({current_tool}) failed: {e}. Cascading to next fallback.")
 
-        # If every tool in the chain failed, trigger Graceful Degradation
         ticker = original_args.get("ticker", "target entity")
         gap_reason = f"All {len(chain)} tools in fallback chain ({', '.join(chain)}) failed or had open circuit breakers."
         degraded_msg = (
@@ -242,9 +227,7 @@ class FallbackChainCoordinator:
         lines.append("")
         return "\n".join(lines)
 
-
 _GLOBAL_FALLBACK_COORDINATOR: Optional[FallbackChainCoordinator] = None
-
 
 def get_fallback_coordinator() -> FallbackChainCoordinator:
     """Retrieves or creates the global FallbackChainCoordinator singleton."""

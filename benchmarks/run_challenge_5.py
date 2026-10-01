@@ -17,7 +17,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -29,7 +28,6 @@ from synthesis.engine import MultiSourceSynthesisEngine
 from synthesis.conflict_resolver import SourceTier
 from config.settings import get_settings
 
-
 class Challenge5MockLLM(MockChatModel):
     """Context-aware mock LLM that executes the ReAct cycle for Palantir Contradictory Data Analysis."""
 
@@ -39,7 +37,6 @@ class Challenge5MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Query SEC Form 10-K for audited statutory financials and GAAP operating income
         if self.step == 1:
             content = (
                 "Thought: To begin reconciling conflicting claims for Palantir Technologies, I must first query SEC Form 10-K "
@@ -47,7 +44,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: sec_filing_search\n"
                 "Action Input: {\"ticker\": \"PLTR\", \"filing_type\": \"10-K\", \"section\": \"Item 8\"}"
             )
-        # Step 2: Query financial data API for fundamental valuation metrics and consolidated income statement
         elif self.step == 2:
             content = (
                 "Thought: Now I need consolidated market fundamentals and valuation multiples from the financial data API "
@@ -55,7 +51,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"PLTR\", \"statement_type\": \"income_statement\", \"period\": \"annual\", \"years\": 3}"
             )
-        # Step 3: Query earnings transcript for management commentary on AIP bootcamps and Non-GAAP Adjusted margins
         elif self.step == 3:
             content = (
                 "Thought: I must inspect the earnings transcript to examine management's Non-GAAP adjusted operating margin "
@@ -63,7 +58,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: earnings_transcript\n"
                 "Action Input: {\"ticker\": \"PLTR\", \"quarter\": \"Q4\", \"year\": 2024}"
             )
-        # Step 4: Query news sentiment to capture conflicting press reports and market commentary
         elif self.step == 4:
             content = (
                 "Thought: I will search recent financial news and press coverage to identify headlines conflating "
@@ -71,7 +65,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: news_sentiment\n"
                 "Action Input: {\"query\": \"Palantir commercial growth rate AIP bootcamp customer count revenue guidance\", \"num_articles\": 4, \"lookback_days\": 45}"
             )
-        # Step 5: Execute calculation engine to compute GAAP vs Non-GAAP operating margin variance
         elif self.step == 5:
             content = (
                 "Thought: To quantitatively substantiate the GAAP vs Non-GAAP contradiction, I will use the calculation engine "
@@ -79,7 +72,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: calculation_engine\n"
                 "Action Input: {\"calculation_type\": \"margin\", \"inputs\": {\"revenue\": 2866.0, \"operating_income\": 342.0}}"
             )
-        # Step 6: Fact check conflicting customer count and growth rate claims
         elif self.step == 6:
             content = (
                 "Thought: I will use the fact checker to cross-verify the conflicting claim that Palantir grew total revenue by 54% "
@@ -87,7 +79,6 @@ class Challenge5MockLLM(MockChatModel):
                 "Action: fact_checker\n"
                 "Action Input: {\"claim\": \"Palantir consolidated annual revenue grew by 54 percent in FY2024\", \"ticker\": \"PLTR\"}"
             )
-        # Step 7: Final Comprehensive Contradictory Data Report Synthesis
         else:
             content = (
                 "Thought: I have collected statutory SEC 10-K audited statements, market fundamentals, executive earnings remarks, "
@@ -168,7 +159,6 @@ class Challenge5MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 150, "completion_tokens": 360}})
 
-
 def run_challenge_5(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 5 end-to-end and writes results/challenge_5.md."""
     settings = get_settings()
@@ -201,7 +191,6 @@ def run_challenge_5(output_dir: Optional[str] = None) -> str:
     result = agent.execute(query, session_id="challenge-5-session")
     elapsed = time.time() - start_time
 
-    # Ensure results/challenge_5.md contains the full markdown synthesis
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(result.report)
 
@@ -211,7 +200,6 @@ def run_challenge_5(output_dir: Optional[str] = None) -> str:
     print(f"[TOOLS] Invoked: {[tc['tool'] for tc in result.tool_calls]}")
     print("=" * 75)
     return str(report_path)
-
 
 if __name__ == "__main__":
     run_challenge_5()

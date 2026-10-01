@@ -10,7 +10,6 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 
-
 class Settings(BaseSettings):
     """Central configuration for ARA-1 Agent runtime."""
 
@@ -21,15 +20,9 @@ class Settings(BaseSettings):
         case_sensitive=False
     )
 
-    # -------------------------------------------------------------------------
-    # Core LLM API Keys & Provider Settings
-    # -------------------------------------------------------------------------
     OPENAI_API_KEY: Optional[str] = Field(default=None, description="OpenAI API key")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, description="Anthropic API key")
 
-    # -------------------------------------------------------------------------
-    # Financial Market & Search API Credentials
-    # -------------------------------------------------------------------------
     SEC_EDGAR_USER_AGENT: str = Field(
         default="QuantumEdgeResearch intern@quantumedge.com",
         description="Mandatory User-Agent for SEC EDGAR rate limit compliance"
@@ -40,9 +33,6 @@ class Settings(BaseSettings):
     SERPAPI_API_KEY: Optional[str] = Field(default=None, description="SerpAPI key")
     NEWS_API_KEY: Optional[str] = Field(default=None, description="NewsAPI key")
 
-    # -------------------------------------------------------------------------
-    # Model Names & Parameters
-    # -------------------------------------------------------------------------
     DEFAULT_LLM_MODEL: str = Field(default="gpt-4o-mini", description="Base fast model")
     REASONING_LLM_MODEL: str = Field(default="gpt-4o", description="Flagship reasoning model")
     EMBEDDING_MODEL: str = Field(
@@ -54,9 +44,6 @@ class Settings(BaseSettings):
     MAX_TOKENS: int = Field(default=4096, gt=0)
     CONTEXT_WINDOW_LIMIT: int = Field(default=128000, description="Nominal model context window limit")
 
-    # -------------------------------------------------------------------------
-    # Vector Database Configuration
-    # -------------------------------------------------------------------------
     VECTOR_DB_TYPE: str = Field(default="chroma", description="'chroma' or 'pinecone'")
     CHROMA_PERSIST_DIRECTORY: str = Field(default="./data/chroma_db")
     CHROMA_COLLECTION_NAME: str = Field(default="ara1_research_memory")
@@ -64,25 +51,16 @@ class Settings(BaseSettings):
     PINECONE_ENVIRONMENT: str = Field(default="us-east-1-aws")
     PINECONE_INDEX_NAME: str = Field(default="ara1-financial-research")
 
-    # -------------------------------------------------------------------------
-    # Execution & Safety Thresholds
-    # -------------------------------------------------------------------------
     MAX_TOOL_CALLS_PER_TASK: int = Field(default=20, ge=1, le=100)
     CIRCUIT_BREAKER_FAIL_THRESHOLD: int = Field(default=3, ge=1)
     CIRCUIT_BREAKER_RESET_TIMEOUT_SEC: float = Field(default=30.0, ge=5.0)
     TOOL_TIMEOUT_SECONDS: float = Field(default=15.0, ge=1.0)
     MAX_RETRIES: int = Field(default=3, ge=0)
 
-    # -------------------------------------------------------------------------
-    # Logging & Trace Paths
-    # -------------------------------------------------------------------------
     LOG_LEVEL: str = Field(default="INFO")
     LOG_FILE_PATH: str = Field(default="./logs/ara1_agent.log")
     TRACE_LOG_PATH: str = Field(default="./logs/traces.jsonl")
 
-    # -------------------------------------------------------------------------
-    # Mock / Offline Execution Flag
-    # -------------------------------------------------------------------------
     MOCK_MODE: bool = Field(
         default=False,
         description="Forces mock responses for testing without active API credits"
@@ -117,7 +95,6 @@ class Settings(BaseSettings):
         p = Path(self.CHROMA_PERSIST_DIRECTORY)
         p.mkdir(parents=True, exist_ok=True)
         return p
-
 
 @lru_cache()
 def get_settings() -> Settings:

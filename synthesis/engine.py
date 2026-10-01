@@ -17,7 +17,6 @@ from synthesis.narrative import NarrativeThreader, QuantitativeTriangulator, Nar
 
 logger = logging.getLogger("ARA1.Synthesis.Engine")
 
-
 class SynthesisReport(BaseModel):
     """Complete deliverable output from the Multi-Source Synthesis Engine."""
     target_ticker: str
@@ -27,7 +26,6 @@ class SynthesisReport(BaseModel):
     discrepancies: List[DiscrepancyLog]
     triangulations: List[TriangulationResult]
     report_markdown: str
-
 
 class MultiSourceSynthesisEngine:
     """Institutional synthesis orchestrator reconciling multi-source corporate intelligence."""
@@ -72,7 +70,6 @@ class MultiSourceSynthesisEngine:
         """Automatically parses and ingests raw tool observation dictionaries."""
         points = []
         if isinstance(tool_output, dict):
-            # Parse financial_data_api output
             if tool_name == "financial_data_api":
                 mkt_cap = tool_output.get("market_cap")
                 if mkt_cap:
@@ -103,7 +100,6 @@ class MultiSourceSynthesisEngine:
                                 is_gaap=True,
                             ))
 
-            # Parse sec_filing_search output
             elif tool_name == "sec_filing_search":
                 latest = tool_output.get("latest_filing", {})
                 if latest:
@@ -117,7 +113,6 @@ class MultiSourceSynthesisEngine:
                         is_gaap=True,
                     ))
 
-            # Parse news_sentiment output
             elif tool_name == "news_sentiment":
                 pol = tool_output.get("average_polarity")
                 if pol is not None:
@@ -136,7 +131,6 @@ class MultiSourceSynthesisEngine:
         Executes complete multi-source conflict reconciliation, triangulation,
         and narrative compilation.
         """
-        # 1. Group observations by metric name
         metrics_map: Dict[str, List[DataPoint]] = {}
         for dp in self.raw_observations:
             metrics_map.setdefault(dp.metric_name, []).append(dp)
@@ -145,21 +139,17 @@ class MultiSourceSynthesisEngine:
         resolved_discrepancies: List[DiscrepancyLog] = []
         triangulation_results: List[TriangulationResult] = []
 
-        # 2. Resolve conflicts for each metric
         for metric_name, points in metrics_map.items():
             auth_point, disc_log = self.conflict_resolver.resolve_conflict(points)
             authoritative_metrics[metric_name] = auth_point.value
             if disc_log:
                 resolved_discrepancies.append(disc_log)
 
-            # Triangulate
             triang_res = self.triangulator.triangulate(metric_name, points)
             triangulation_results.append(triang_res)
 
-        # 3. Construct Narrative Threads
         threads = self._generate_default_threads(target_ticker, authoritative_metrics, resolved_discrepancies)
 
-        # 4. Render comprehensive Markdown report
         markdown = self._render_full_synthesis_markdown(
             target_ticker=target_ticker,
             query=research_query,
@@ -187,7 +177,6 @@ class MultiSourceSynthesisEngine:
         """Builds default structured investment narrative threads."""
         threads = []
 
-        # Thread 1: Financial & Margin Trajectory
         rev_metrics = [
             {"metric": k, "value": v, "source": "Multi-Source Reconciled"}
             for k, v in metrics.items()

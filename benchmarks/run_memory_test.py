@@ -17,7 +17,6 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure workspace root is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -30,19 +29,16 @@ from memory.episodic import EpisodicMemoryStore, EpisodicRecord
 from tools.memory_tools import VectorDbSearchTool, VectorDbStoreTool
 from benchmarks.run_challenge_1 import Challenge1MockLLM
 
-
 def run_memory_benchmark() -> None:
     print("=" * 80)
     print("ARA-1 DAY 6 BENCHMARK: LONG-TERM MEMORY RETRIEVAL & EPISODIC LEARNING TEST")
     print("=" * 80)
 
-    # 1. Initialize persistent stores
     data_dir = ROOT_DIR / "data" / "chroma_db"
     vector_store = FinancialVectorStore(
         persist_directory=str(data_dir),
         collection_name="ara1_financial_memory"
     )
-    # Clear any previous test artifacts to ensure a deterministic run
     vector_store.clear()
 
     episodic_store = EpisodicMemoryStore(
@@ -50,7 +46,6 @@ def run_memory_benchmark() -> None:
     )
     context_manager = ContextManager()
 
-    # 2. Run Challenge 1 Agent Execution
     print("\n[Phase 1] Executing Challenge 1 (Microsoft Corporation Profile)...")
     mock_llm = LLMClient(force_mock=True)
     mock_llm._chat_model = Challenge1MockLLM()
@@ -73,10 +68,8 @@ def run_memory_benchmark() -> None:
     print(f"  -> Agent completed in {exec_result.latency_seconds:.2f}s across {exec_result.iterations} iterations.")
     print(f"  -> Tools executed: {[tc['tool'] for tc in exec_result.tool_calls]}")
 
-    # 3. Ingest Research Findings into Vector Store
     print("\n[Phase 2] Chunking & Ingesting Research Corpus into Vector Store...")
 
-    # A. Section-Aware SEC Filing Ingestion (10-K Item 1 & Item 7)
     msft_10k_text = """
     ITEM 1. BUSINESS
     Microsoft Corporation is a technology company that provides software, services, devices, and solutions.
@@ -106,7 +99,6 @@ def run_memory_benchmark() -> None:
     )
     print(f"  -> Ingested {len(filing_doc_ids)} section-aware 10-K chunks (Item 1, 1A, 7).")
 
-    # B. Earnings Call Transcript with Q&A Pairing
     msft_transcript_text = """
     Executive Remarks:
     Satya Nadella (CEO): Good afternoon. In FY24, we crossed $245B in revenue. Azure AI customer adoption
@@ -133,7 +125,6 @@ def run_memory_benchmark() -> None:
     )
     print(f"  -> Ingested {len(transcript_doc_ids)} speaker-paired Q&A transcript chunks.")
 
-    # C. Ingest Synthesized Final Research Report Excerpt
     synthesis_doc = ResearchDocument(
         id="msft-profile-synthesis-2024-001",
         content=(
@@ -154,7 +145,6 @@ def run_memory_benchmark() -> None:
     total_chunks = vector_store.count(ticker="MSFT")
     print(f"  -> Total MSFT chunks in vector store: {total_chunks}")
 
-    # 4. Long-Term Semantic Retrieval Testing
     print("\n[Phase 3] Running Long-Term Memory Retrieval Test Queries...")
 
     test_queries = [
@@ -186,10 +176,8 @@ def run_memory_benchmark() -> None:
         assert len(matches) > 0, f"Expected matches for query: {tq['query']}"
         top_match = matches[0]
 
-        # Verify similarity score threshold (>= 0.20 for offline feature hashing; >0.65 for OpenAI embeddings)
         assert top_match.similarity_score >= 0.20, f"Similarity too low: {top_match.similarity_score}"
 
-        # Check for expected factual keywords
         matched_keywords = [kw for kw in tq["expected_keywords"] if kw.lower() in top_match.document.content.lower()]
         assert len(matched_keywords) >= 1, f"Expected at least one keyword match, got {matched_keywords} for doc {top_match.document.id}"
 
@@ -205,7 +193,6 @@ def run_memory_benchmark() -> None:
         print(f"  [PASS] Query: '{tq['query'][:40]}...' | Score: {top_match.similarity_score:.4f} | ID: {top_match.document.id}")
         print(f"         Snippet: {res_item['content_snippet']}...")
 
-    # 5. Episodic Procedural Memory Retrieval Testing
     print("\n[Phase 4] Testing Episodic Strategy Retrieval...")
     strategies = episodic_store.retrieve_strategy(
         query="Company profile overview and segment financials",
@@ -219,7 +206,6 @@ def run_memory_benchmark() -> None:
     print(f"         Recommended Tool Sequence: {' -> '.join(top_strat.tool_sequence)}")
     print(f"         Procedural Reflection: {top_strat.reflection[:120]}...")
 
-    # 6. Verify Second Agent Execution Leverages Stored Memory
     print("\n[Phase 5] Executing Follow-Up Agent Query to Verify Memory Hits...")
     followup_query = "What is Microsoft's Intelligent Cloud segment revenue and Azure growth rate for FY24?"
 
@@ -231,12 +217,10 @@ def run_memory_benchmark() -> None:
         episodic_store=episodic_store,
         max_iterations=4,
     )
-    # The pre-execution check in execute() should detect the stored chunks
     followup_res = followup_agent.execute(query=followup_query)
     print(f"  [PASS] Follow-Up Execution Memory Pre-Check Hits: {followup_res.memory_hits}")
     assert followup_res.memory_hits >= 1, "Expected agent pre-execution to discover stored memory!"
 
-    # 7. Generate Comprehensive Output Report
     results_dir = ROOT_DIR / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     report_path = results_dir / "challenge_1_memory_test.md"
@@ -336,7 +320,6 @@ When the follow-up research query (*"What is Microsoft's Intelligent Cloud segme
     print("=" * 80)
     print("ALL DAY 6 DELIVERABLES SUCCESSFULLY VERIFIED AND COMPLETED!")
     print("=" * 80)
-
 
 if __name__ == "__main__":
     run_memory_benchmark()

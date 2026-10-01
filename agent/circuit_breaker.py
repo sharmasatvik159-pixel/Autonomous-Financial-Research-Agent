@@ -15,12 +15,10 @@ from typing import Dict, Any, Optional, Callable
 
 logger = logging.getLogger("ARA1.Resilience.CircuitBreaker")
 
-
 class CircuitState(str, Enum):
     CLOSED = "CLOSED"
     OPEN = "OPEN"
     HALF_OPEN = "HALF_OPEN"
-
 
 class CircuitBreakerOpenException(Exception):
     """Raised when an execution is attempted on a tripped (OPEN) circuit breaker."""
@@ -31,7 +29,6 @@ class CircuitBreakerOpenException(Exception):
             f"Circuit breaker for '{tool_name}' is OPEN. "
             f"Failing fast to prevent cascading timeout. Retry in {cooldown_remaining:.1f}s."
         )
-
 
 class CircuitBreaker:
     """Per-tool circuit breaker tracking failure rates, states, and recovery transitions."""
@@ -71,7 +68,6 @@ class CircuitBreaker:
             return False
 
         elif self.state == CircuitState.HALF_OPEN:
-            # In half-open, allow trial probes
             return True
 
         return True
@@ -102,7 +98,6 @@ class CircuitBreaker:
                     f"Circuit breaker TRIPPED to OPEN. Cooldown: {self.recovery_timeout}s. Reason: {error}"
                 )
         elif self.state == CircuitState.HALF_OPEN:
-            # Probe failed; immediately re-open circuit
             self.state = CircuitState.OPEN
             self.total_trips += 1
             logger.warning(
@@ -134,7 +129,6 @@ class CircuitBreaker:
             "total_trips": self.total_trips,
             "is_available": self.can_execute(),
         }
-
 
 class CircuitBreakerRegistry:
     """Manages circuit breakers across all registered tools."""
@@ -176,9 +170,7 @@ class CircuitBreakerRegistry:
             b.consecutive_failures = 0
             b.consecutive_successes = 0
 
-
 _GLOBAL_CIRCUIT_REGISTRY: Optional[CircuitBreakerRegistry] = None
-
 
 def get_circuit_breaker_registry() -> CircuitBreakerRegistry:
     """Singleton provider for global circuit breaker registry."""

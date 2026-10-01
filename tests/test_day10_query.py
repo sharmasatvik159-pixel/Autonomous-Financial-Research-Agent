@@ -25,16 +25,13 @@ from agent.core import FinancialResearchAgent
 from agent.llm_client import LLMClient
 from tools.tool_registry import ToolRegistry
 
-
 @pytest.fixture
 def analyzer():
     return QueryAnalyzer()
 
-
 @pytest.fixture
 def disambiguator():
     return DisambiguationEngine()
-
 
 def test_clear_query_classification(analyzer):
     """Specific query with ticker and metric should have low ambiguity."""
@@ -44,7 +41,6 @@ def test_clear_query_classification(analyzer):
     assert result.ambiguity_level in (AmbiguityLevel.CLEAR, AmbiguityLevel.MODERATE)
     assert result.ambiguity_score < 0.45
     assert not result.is_ambiguous
-
 
 def test_vague_query_banking_classification(analyzer):
     """Challenge 6 query should be classified as highly ambiguous with missing dimensions."""
@@ -57,20 +53,17 @@ def test_vague_query_banking_classification(analyzer):
     assert "Financials" in result.target_sectors or "banks" in result.cleaned_query.lower()
     assert len(result.missing_dimensions) >= 2
 
-
 def test_documented_assumptions_generation(analyzer, disambiguator):
     """Disambiguation engine must produce documented assumptions for missing dimensions."""
     analysis = analyzer.analyze("What's happening with the banks?")
     plan = disambiguator.disambiguate(analysis)
 
     assert len(plan.documented_assumptions) >= 3
-    # Check that assumptions address geography, entity tier, and analytical metrics
     assumptions_text = " ".join(plan.documented_assumptions)
     assert "Geographic Scope" in assumptions_text or "United States" in assumptions_text
     assert "G-SIBs" in assumptions_text or "Regional" in assumptions_text or "Cohort" in assumptions_text
     assert len(plan.clarifying_questions) >= 2
     assert "> ### Query Disambiguation & Documented Assumptions" in plan.preamble_markdown
-
 
 def test_private_company_edge_case(analyzer, disambiguator):
     """Private companies without SEC filings must trigger specialized edge-case guidance."""
@@ -88,7 +81,6 @@ def test_private_company_edge_case(analyzer, disambiguator):
     assert guidance.confidence_penalty > 0.0
     assert any("No statutory SEC Form 10-K" in note for note in guidance.caution_notes)
 
-
 def test_recent_ipo_edge_case(analyzer, disambiguator):
     """Recent IPOs with truncated financial history must trigger Form S-1 guidance."""
     query = "Analyze ARM's post-IPO royalty revenue growth and valuation."
@@ -101,7 +93,6 @@ def test_recent_ipo_edge_case(analyzer, disambiguator):
     assert guidance is not None
     assert guidance.lifecycle == EntityLifecycle.RECENT_IPO
     assert any("Form S-1" in note for note in guidance.caution_notes)
-
 
 def test_rapid_corporate_change_detection(analyzer, disambiguator):
     """Rapid corporate change keywords should trigger temporal sensitivity alerts."""
@@ -116,7 +107,6 @@ def test_rapid_corporate_change_detection(analyzer, disambiguator):
     assert any("TEMPORAL SENSITIVITY" in note for note in guidance.caution_notes)
     assert "Form 8-K" in " ".join(guidance.caution_notes)
 
-
 def test_memory_synthesis_query_detection(analyzer):
     """Challenge 7 query must be recognized as requiring long-term memory synthesis."""
     query = "Based on the companies you've already researched, what themes emerge across the technology sector? Identify cross-cutting risks and opportunities."
@@ -126,7 +116,6 @@ def test_memory_synthesis_query_detection(analyzer):
     assert analysis.scope == QueryScope.SECTOR_INDUSTRY
     assert analysis.recommended_strategy == "MEMORY_DRIVEN_SECTOR_SYNTHESIS"
     assert "Technology" in analysis.target_sectors
-
 
 def test_agent_logs_transparent_assumptions_on_ambiguous_query(caplog):
     """Verify that FinancialResearchAgent integrates disambiguation logging on ambiguous queries."""
@@ -140,7 +129,6 @@ def test_agent_logs_transparent_assumptions_on_ambiguous_query(caplog):
     analysis = analyzer.analyze(query)
     plan = disambiguator.disambiguate(analysis)
 
-    # Documented assumptions logged
     logger = logging.getLogger("ARA1.Test")
     logger.info(f"[DISAMBIGUATION] Query ambiguity: {analysis.ambiguity_level.value} (Score: {analysis.ambiguity_score})")
     for assumption in plan.documented_assumptions:

@@ -23,7 +23,6 @@ try:
 except ImportError:
     _HAS_RICH = False
 
-
 class AgentTraceEvent:
     """Represents a discrete event in the agent's reasoning trajectory."""
 
@@ -35,7 +34,7 @@ class AgentTraceEvent:
         session_id: Optional[str] = None,
     ):
         self.timestamp = datetime.now(timezone.utc).isoformat()
-        self.event_type = event_type  # 'thought', 'action', 'observation', 'llm_call', 'error', 'reflection'
+        self.event_type = event_type
         self.step = step
         self.session_id = session_id or "default_session"
         self.content = content
@@ -49,7 +48,6 @@ class AgentTraceEvent:
             "content": self.content,
         }
 
-
 class AgentLogger:
     """Central logging and trace capture engine."""
 
@@ -58,16 +56,13 @@ class AgentLogger:
         self.session_id = session_id or f"ara1-session-{int(time.time())}"
         self.active_trace: List[AgentTraceEvent] = []
 
-        # Configure root logger
         self.logger = logging.getLogger("ARA1.Agent")
         self.logger.setLevel(getattr(logging, self.settings.LOG_LEVEL.upper(), logging.INFO))
         self.logger.propagate = False
 
-        # Clear existing handlers to prevent duplicate lines
         if not self.logger.handlers:
             self._setup_handlers()
 
-        # Rich console if available
         if _HAS_RICH:
             custom_theme = Theme({
                 "info": "cyan",
@@ -83,7 +78,6 @@ class AgentLogger:
 
     def _setup_handlers(self) -> None:
         """Sets up file and stream logging handlers."""
-        # Ensure log directory exists
         log_dir = self.settings.get_log_dir()
         log_file = log_dir / Path(self.settings.LOG_FILE_PATH).name
 
@@ -252,9 +246,7 @@ class AgentLogger:
         if new_session_id:
             self.session_id = new_session_id
 
-
 _GLOBAL_LOGGER: Optional[AgentLogger] = None
-
 
 def get_agent_logger(session_id: Optional[str] = None) -> AgentLogger:
     """Singleton getter for AgentLogger."""

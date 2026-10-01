@@ -17,7 +17,6 @@ from tools.schemas import FactCheckerInput
 
 logger = logging.getLogger("ARA1.FactCheckerTool")
 
-
 class FactCheckerTool(BaseTool):
     """Tool for cross-referencing and validating numerical claims against authoritative evidence."""
 
@@ -43,14 +42,12 @@ class FactCheckerTool(BaseTool):
         clean_claim = claim.strip()
         evidence_sources = sources or []
 
-        # Extract numerical quantities ($ amounts, %, billions/millions)
         num_patterns = re.findall(
             r"(\$\s*\d+(?:\.\d+)?\s*(?:Billion|Million|Trillion|B|M|K)?|\d+(?:\.\d+)?\s*%)",
             clean_claim,
             re.IGNORECASE
         )
 
-        # Detect known authoritative financial benchmark facts
         status = "VERIFIED"
         confidence = 0.95
         findings: List[str] = []
@@ -58,7 +55,6 @@ class FactCheckerTool(BaseTool):
 
         lower_claim = clean_claim.lower()
 
-        # Check: Tesla automotive regulatory credits & margins
         if "tesla" in lower_claim or "tsla" in lower_claim:
             if "regulatory credit" in lower_claim or "credits" in lower_claim:
                 findings.append("Verified: Tesla recognized $739M in automotive regulatory credits in Q3 2024 ($1.79B in 2023).")
@@ -70,7 +66,6 @@ class FactCheckerTool(BaseTool):
                     confidence = 0.99
                     discrepancies.append("Discrepancy: Tesla automotive gross margins have never reached 40% (peak was ~30% in 2021; Q3 2024 is 17.1%).")
 
-        # Check: Microsoft FY24 metrics
         elif "microsoft" in lower_claim or "msft" in lower_claim:
             if "245" in lower_claim:
                 findings.append("Verified: Microsoft FY24 total revenue was $245.12 Billion (+15.7% YoY) per SEC Form 10-K.")
@@ -79,21 +74,18 @@ class FactCheckerTool(BaseTool):
             if "azure" in lower_claim and "29" in lower_claim:
                 findings.append("Verified: Azure and other cloud services revenue grew 29% in constant currency.")
 
-        # Check: Amazon AWS metrics
         elif "aws" in lower_claim or "amazon" in lower_claim:
             if "105" in lower_claim or "27" in lower_claim or "19" in lower_claim:
                 findings.append("Verified: AWS annualized run rate reached $110B with Q3 revenue up 19% YoY to $27.5B.")
             if "38" in lower_claim:
                 findings.append("Verified: AWS operating margin was 38.0% ($10.4B operating income).")
 
-        # Check: Google Cloud GCP metrics
         elif "gcp" in lower_claim or "google cloud" in lower_claim:
             if "11" in lower_claim or "35" in lower_claim:
                 findings.append("Verified: Google Cloud revenue was $11.35 Billion (+35% YoY) in Q3 2024.")
             if "17" in lower_claim:
                 findings.append("Verified: Google Cloud operating margin was 17.1% ($1.95B operating income).")
 
-        # If evidence was provided explicitly in sources
         if evidence_sources:
             for s in evidence_sources:
                 findings.append(f"Cross-referenced against supplied source: {s[:100]}")

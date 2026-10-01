@@ -11,19 +11,16 @@ import re
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel, Field
 
-
 class AgentAction(BaseModel):
     """Represents a parsed tool invocation request from the agent."""
     tool: str = Field(description="Name of the tool to execute")
     tool_input: Dict[str, Any] = Field(default_factory=dict, description="Keyword arguments for the tool")
     thought: str = Field(default="", description="The LLM's preceding reasoning thought")
 
-
 class AgentFinish(BaseModel):
     """Represents the agent's completed research output and termination signal."""
     return_values: Dict[str, Any] = Field(description="Final output dictionary containing 'output' text")
     thought: str = Field(default="", description="The concluding thought step")
-
 
 class PlanOutput(BaseModel):
     """Represents a decomposed research plan from the Planner."""
@@ -31,11 +28,9 @@ class PlanOutput(BaseModel):
     target_ticker: str = ""
     plan: List[str] = Field(default_factory=list)
 
-
 class ReActOutputParser:
     """Parser for Thought-Action-Observation textual loops and structured tool calls."""
 
-    # Regex patterns for ReAct loop components
     THOUGHT_PATTERN = re.compile(r"Thought:\s*(.*?)(?=(?:Action:|Final Answer:|$))", re.DOTALL | re.IGNORECASE)
     ACTION_PATTERN = re.compile(r"Action:\s*([a-zA-Z0-9_\-]+)", re.IGNORECASE)
     ACTION_INPUT_PATTERN = re.compile(r"Action Input:\s*(\{.*?\}|\[.*?\]|\"[^\"]*\"|[^\n\r]+)", re.DOTALL | re.IGNORECASE)
@@ -49,7 +44,6 @@ class ReActOutputParser:
     ) -> Union[AgentAction, AgentFinish]:
         """Parses an LLM response string or native tool calls into AgentAction or AgentFinish."""
 
-        # 1. Check for native tool calls first (if returned by OpenAI/Anthropic tool calling)
         if tool_calls and len(tool_calls) > 0:
             primary_call = tool_calls[0]
             thought = text.strip() if text else "Invoking tool call."
@@ -67,7 +61,6 @@ class ReActOutputParser:
 
         text_cleaned = text.strip()
 
-        # 2. Check for Final Answer
         final_match = cls.FINAL_ANSWER_PATTERN.search(text_cleaned)
         if final_match:
             thought_match = cls.THOUGHT_PATTERN.search(text_cleaned)
@@ -78,21 +71,17 @@ class ReActOutputParser:
                 thought=thought
             )
 
-        # 3. Check for Action and Action Input
         action_match = cls.ACTION_PATTERN.search(text_cleaned)
         if action_match:
             tool_name = action_match.group(1).strip()
             
-            # Extract Thought
             thought_match = cls.THOUGHT_PATTERN.search(text_cleaned)
             thought = thought_match.group(1).strip() if thought_match else ""
 
-            # Extract Action Input with balanced brace/bracket support for nested JSON
             tool_input = {}
             input_match = re.search(r"Action Input:\s*", text_cleaned, re.IGNORECASE)
             if input_match:
                 rest = text_cleaned[input_match.end():].strip()
-                # Clean up markdown codeblocks if present
                 rest = re.sub(r"^```(?:json)?\s*", "", rest)
                 
                 raw_input = ""
@@ -142,8 +131,6 @@ class ReActOutputParser:
                 thought=thought,
             )
 
-        # 4. Fallback: If no explicit Action is found, treat whole text as Final Answer
-        # This prevents hanging if the model generates a direct report without prefixing 'Final Answer:'
         return AgentFinish(
             return_values={"output": text_cleaned},
             thought="Direct response provided without explicit Action."
@@ -153,12 +140,10 @@ class ReActOutputParser:
     def parse_plan(cls, text: str) -> PlanOutput:
         """Parses a Planner response into a structured PlanOutput."""
         cleaned = text.strip()
-        # Find JSON block inside markdown codeblock if present
         json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
         if json_match:
             json_str = json_match.group(1)
         else:
-            # Look for any JSON-like substring
             brace_match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
             json_str = brace_match.group(1) if brace_match else "{}"
 
@@ -170,7 +155,6 @@ class ReActOutputParser:
                 plan=data.get("plan", []),
             )
         except Exception:
-            # Fallback: extract numbered steps using regex
             steps = re.findall(r"(?:Step\s*\d+:|\d+\.)\s*([^\n\r]+)", cleaned)
             return PlanOutput(
                 thought="Extracted plan via fallback pattern matching.",

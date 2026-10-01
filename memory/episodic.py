@@ -21,7 +21,6 @@ from memory.vector_store import EmbeddingGenerator
 
 logger = logging.getLogger("ARA1.EpisodicMemory")
 
-
 class ErrorRecoveryPath(BaseModel):
     """Encapsulates a runtime tool failure and its successful resolution route."""
     failed_tool: str
@@ -30,7 +29,6 @@ class ErrorRecoveryPath(BaseModel):
     recovery_action: str
     success: bool = True
     context_hint: str = ""
-
 
 class EpisodicRecord(BaseModel):
     """Schema for a historical research episode and its procedural learning."""
@@ -52,7 +50,6 @@ class EpisodicRecord(BaseModel):
     citation_count: int = Field(default=0)
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-
 class EpisodicMemoryStore:
     """Manages persistence and semantic/heuristic retrieval of research strategies and error recovery paths."""
 
@@ -69,7 +66,6 @@ class EpisodicMemoryStore:
         self.embedder = EmbeddingGenerator(dimension=self.settings.EMBEDDING_DIMENSION)
         self._load()
 
-        # Seed with initial baseline domain strategies if empty
         if not self.records:
             self._seed_baseline_strategies()
 
@@ -180,7 +176,6 @@ class EpisodicMemoryStore:
             success=success,
             context_hint=context_hint,
         )
-        # Attach to the latest matching record or create an incremental one
         for r in reversed(self.records):
             if ticker and r.target_ticker == ticker.upper():
                 r.error_recovery_paths.append(recovery)
@@ -216,21 +211,17 @@ class EpisodicMemoryStore:
         for record in self.records:
             score = 0.0
 
-            # Match ticker
             if target_ticker and record.target_ticker:
                 if target_ticker.upper() == record.target_ticker.upper():
                     score += 2.0
 
-            # Match query_type
             if query_type and record.query_type == query_type:
                 score += 1.5
 
-            # Word overlap with historical query
             rec_words = set(record.query.lower().replace(",", " ").replace(".", " ").split())
             overlap = len(q_words.intersection(rec_words))
             score += overlap * 0.4
 
-            # Quality weighting
             score *= record.outcome_quality
 
             scored.append((score, record))

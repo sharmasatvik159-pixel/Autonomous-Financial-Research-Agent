@@ -26,7 +26,6 @@ from agent.fallback_chains import (
     FallbackExecutionResult,
 )
 
-
 def test_error_classification():
     """Verify exceptions are properly classified into transient vs fatal categories."""
     cat1, sev1 = classify_error(Exception("429 Too Many Requests: Rate limit exceeded"))
@@ -45,17 +44,13 @@ def test_error_classification():
     assert cat4 == ErrorCategory.SCHEMA_ERROR
     assert sev4 == ErrorSeverity.DEGRADED
 
-
 def test_exponential_backoff_jitter():
     """Verify exponential backoff calculation increases and applies bounded jitter."""
     delays = [calculate_backoff_with_jitter(attempt=i, base_delay=0.1, max_delay=5.0) for i in range(1, 5)]
     assert len(delays) == 4
-    # Bounded positive values
     for d in delays:
         assert d >= 0.05
-    # Overall increasing trend
     assert delays[-1] > delays[0]
-
 
 def test_retry_with_backoff_transient_recovery():
     """Verify retry decorator retries on transient errors and succeeds when service recovers."""
@@ -73,7 +68,6 @@ def test_retry_with_backoff_transient_recovery():
     assert result == "SUCCESS_DATA"
     assert attempts == 3
 
-
 def test_circuit_breaker_tripping_and_recovery():
     """Verify circuit breaker transitions: CLOSED -> OPEN -> HALF_OPEN -> CLOSED."""
     cb = CircuitBreaker(
@@ -85,31 +79,25 @@ def test_circuit_breaker_tripping_and_recovery():
     assert cb.state == CircuitState.CLOSED
     assert cb.can_execute() is True
 
-    # 1. First failure
     cb.record_failure(Exception("500 Server Error"))
     assert cb.state == CircuitState.CLOSED
     assert cb.consecutive_failures == 1
 
-    # 2. Second failure -> Trips to OPEN
     cb.record_failure(Exception("500 Server Error"))
     assert cb.state == CircuitState.OPEN
     assert cb.can_execute() is False
     assert cb.total_trips == 1
 
-    # 3. Attempting execution while OPEN raises CircuitBreakerOpenException
     with pytest.raises(CircuitBreakerOpenException):
         cb.execute(lambda: "should_not_run")
 
-    # 4. Wait for recovery timeout to elapse -> Transitions to HALF_OPEN
     time.sleep(0.25)
     assert cb.can_execute() is True
     assert cb.state == CircuitState.HALF_OPEN
 
-    # 5. Successful trial probe closes circuit
     cb.record_success()
     assert cb.state == CircuitState.CLOSED
     assert cb.consecutive_failures == 0
-
 
 def test_fallback_chain_primary_failure_recovery():
     """Verify primary tool failure automatically routes to secondary fallback tool."""
@@ -138,7 +126,6 @@ def test_fallback_chain_primary_failure_recovery():
     assert res.hops_taken[0].status == "FAILED"
     assert res.hops_taken[1].status == "SUCCESS"
 
-
 def test_fallback_chain_graceful_degradation():
     """Verify graceful degradation when every tool in the fallback chain fails."""
     coordinator = FallbackChainCoordinator(
@@ -162,18 +149,15 @@ def test_fallback_chain_graceful_degradation():
     assert "Data Availability & Graceful Degradation Notice" in alert_md
     assert "flaky_primary" in alert_md
 
-
 def test_fallback_argument_adaptation():
     """Verify automatic adaptation of query arguments between different tool schemas."""
     coordinator = FallbackChainCoordinator()
 
-    # financial_data_api -> sec_filing_search
     orig = {"ticker": "BAC", "statement_type": "income_statement", "period": "annual"}
     adapted = coordinator.adapt_arguments("financial_data_api", "sec_filing_search", orig)
     assert adapted["ticker"] == "BAC"
     assert adapted["filing_type"] == "10-K"
 
-    # peer_comparison -> company_profile
     orig_peer = {"ticker": "WFC", "num_peers": 4}
     adapted_peer = coordinator.adapt_arguments("peer_comparison", "company_profile", orig_peer)
     assert adapted_peer == {"ticker": "WFC"}

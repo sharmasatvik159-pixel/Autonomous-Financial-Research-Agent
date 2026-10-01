@@ -18,7 +18,6 @@ from tools.cache import get_tool_cache
 from tools.rate_limiter import get_rate_limiter
 from config.settings import get_settings
 
-
 def test_sec_edgar_user_agent_and_retrieval():
     """Verify SEC EDGAR tool adheres to SEC User-Agent requirements and returns structured data."""
     settings = get_settings()
@@ -26,7 +25,6 @@ def test_sec_edgar_user_agent_and_retrieval():
     assert "@" in settings.SEC_EDGAR_USER_AGENT or " " in settings.SEC_EDGAR_USER_AGENT
 
     tool = SecFilingSearchTool()
-    # Test retrieval for MSFT
     result = tool(ticker="MSFT", filing_type="10-K", year=2024)
     assert result.success is True
     data = result.data
@@ -38,28 +36,23 @@ def test_sec_edgar_user_agent_and_retrieval():
     assert latest.get("form") == "10-K"
     assert "accession_number" in latest
 
-
 def test_financial_api_statements():
     """Verify financial_data_api retrieves income statements, balance sheets, and cash flows."""
     tool = FinancialDataApiTool()
 
-    # 1. Income statement
     inc_res = tool(ticker="AAPL", statement_type="income_statement", period="annual", years=2)
     assert inc_res.success is True
     inc_data = inc_res.data
     assert inc_data.get("ticker") == "AAPL"
     assert "market_cap" in inc_data or "revenue" in inc_data or "trailing_pe" in inc_data
 
-    # 2. Balance sheet
     bs_res = tool(ticker="AAPL", statement_type="balance_sheet", period="annual", years=2)
     assert bs_res.success is True
     assert bs_res.data.get("statement_type") == "balance_sheet"
 
-    # 3. Cash flow
     cf_res = tool(ticker="AAPL", statement_type="cash_flow", period="annual", years=2)
     assert cf_res.success is True
     assert cf_res.data.get("statement_type") == "cash_flow"
-
 
 def test_web_search_execution():
     """Verify web search tool executes queries without crashing and returns results."""
@@ -72,7 +65,6 @@ def test_web_search_execution():
     assert len(results_list) > 0
     assert "title" in results_list[0]
 
-
 def test_news_sentiment_nlp():
     """Verify news sentiment scoring tool runs NLP on financial news."""
     tool = NewsSentimentTool()
@@ -84,11 +76,10 @@ def test_news_sentiment_nlp():
     assert data["overall_sentiment"] in ("BULLISH", "BEARISH", "NEUTRAL", "POSITIVE", "NEGATIVE")
     assert isinstance(data["articles"], list)
 
-
 def test_rate_limiter_and_caching_wrapper():
     """Verify rate limiter acquiring and cache storage across API executions."""
     limiter = get_rate_limiter("test_api", rate_per_second=20.0)
-    limiter.acquire()  # Acquires without error
+    limiter.acquire()
 
     cache = get_tool_cache()
     test_key = "test_api_key_day5"

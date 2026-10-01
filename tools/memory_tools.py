@@ -17,7 +17,6 @@ from memory.vector_store import FinancialVectorStore, ResearchDocument
 
 logger = logging.getLogger("ARA1.MemoryTools")
 
-
 class VectorDbSearchTool(BaseTool):
     """Tool for semantic similarity searching across persistent research memory."""
 
@@ -79,7 +78,6 @@ class VectorDbSearchTool(BaseTool):
 
         logger.info(f"vector_db_search retrieved {len(formatted_matches)} matching records.")
         return formatted_matches
-
 
 class VectorDbStoreTool(BaseTool):
     """Tool for persisting verified research findings into long-term vector memory."""

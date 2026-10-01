@@ -15,7 +15,6 @@ from typing import Any, Optional, Dict
 
 logger = logging.getLogger("ARA1.Cache")
 
-
 class ToolCache:
     """Persistent and in-memory cache for external tool responses."""
 
@@ -38,7 +37,6 @@ class ToolCache:
         """Retrieves cached response if present and not expired."""
         key = self._generate_key(tool_name, kwargs)
 
-        # 1. Check in-memory cache
         if key in self._memory_cache:
             entry = self._memory_cache[key]
             if time.time() < entry["expires_at"]:
@@ -47,7 +45,6 @@ class ToolCache:
             else:
                 del self._memory_cache[key]
 
-        # 2. Check disk cache
         cache_file = self.cache_dir / f"{key}.json"
         if cache_file.exists():
             try:
@@ -104,9 +101,7 @@ class ToolCache:
             except Exception:
                 pass
 
-
 _GLOBAL_CACHE: Optional[ToolCache] = None
-
 
 def get_tool_cache() -> ToolCache:
     """Singleton getter for ToolCache."""

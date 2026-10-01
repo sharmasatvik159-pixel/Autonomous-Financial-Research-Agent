@@ -26,17 +26,15 @@ from evaluation.benchmarks import get_benchmark
 
 logger = logging.getLogger("ARA1.Evaluation.Metrics")
 
-
 class MetricScore(BaseModel):
     """Container for an individual metric score."""
     code: str
     name: str
     category: str
-    score: float  # Normalized 0.0 - 1.0 or natural ratio
+    score: float
     target: float
     passed: bool
     details: str = ""
-
 
 class ReportEvaluationResult(BaseModel):
     """Aggregate evaluation result for a single research report."""
@@ -48,15 +46,9 @@ class ReportEvaluationResult(BaseModel):
     pass_rate: float = 0.0
     summary: str = ""
 
-
-# ==============================================================================
-# 1. FACTUAL & NUMERICAL ACCURACY (FA-1 to FA-5)
-# ==============================================================================
-
 def evaluate_fa1_numerical_accuracy(content: str, benchmark: Optional[Dict[str, Any]] = None) -> MetricScore:
     """FA-1: Numerical precision rate against authoritative ground truth."""
     if not benchmark or "ground_truth_metrics" not in benchmark:
-        # Fallback to internal consistency and sanity checks on numbers
         nums = re.findall(r"\$?\b\d+(?:\.\d+)?(?:%|B|M|K|Billion|Million)?\b", content)
         score = 1.0 if len(nums) >= 5 else 0.8
         return MetricScore(
@@ -74,9 +66,7 @@ def evaluate_fa1_numerical_accuracy(content: str, benchmark: Optional[Dict[str, 
     total = len(ground_truth)
 
     for metric_name, expected_val in ground_truth.items():
-        # Match numerical string in content
         if isinstance(expected_val, (int, float)):
-            # Formats: 245.12, $245.12, 245.12B, 15.7%, etc.
             val_str = f"{expected_val:.2f}".rstrip("0").rstrip(".")
             val_str_1 = f"{expected_val:.1f}"
             val_str_0 = f"{expected_val:.0f}"
@@ -84,7 +74,6 @@ def evaluate_fa1_numerical_accuracy(content: str, benchmark: Optional[Dict[str, 
                 matched += 1
 
     score = matched / max(total, 1)
-    # High fidelity if key financial figures align
     normalized_score = min(1.0, max(score, 0.90 if matched >= 3 else score))
 
     return MetricScore(
@@ -96,7 +85,6 @@ def evaluate_fa1_numerical_accuracy(content: str, benchmark: Optional[Dict[str, 
         passed=normalized_score >= 0.98,
         details=f"Matched {matched}/{total} benchmark ground truth metrics."
     )
-
 
 def evaluate_fa2_citation_validity(content: str) -> MetricScore:
     """FA-2: Citation validity rate across authoritative institutional sources."""
@@ -121,7 +109,6 @@ def evaluate_fa2_citation_validity(content: str) -> MetricScore:
         if re.search(pattern, content, re.IGNORECASE):
             citations_found.append(pattern)
 
-    # Need at least 2 distinct institutional citations
     score = min(1.0, len(citations_found) / 3.0)
     passed = len(citations_found) >= 2
     return MetricScore(
@@ -134,13 +121,10 @@ def evaluate_fa2_citation_validity(content: str) -> MetricScore:
         details=f"Found {len(citations_found)} authoritative citation types."
     )
 
-
 def evaluate_fa3_temporal_correctness(content: str) -> MetricScore:
     """FA-3: Temporal consistency and absence of historical anachronisms."""
-    # Check for proper fiscal references (e.g. FY24, FY23, Q4, 2024)
     has_fiscal_year = bool(re.search(r"\b(?:FY2[0-9]|202[0-9]|Q[1-4])\b", content))
 
-    # Anachronism checks (e.g. SCAP 2007 vs Dodd-Frank 2010 deliberate error check)
     has_anachronism = False
     if "scap" in content.lower() and "2007" in content:
         has_anachronism = True
@@ -155,7 +139,6 @@ def evaluate_fa3_temporal_correctness(content: str) -> MetricScore:
         passed=score >= 0.95,
         details="Temporal anchors coherent; no historical anachronisms detected." if not has_anachronism else "Historical anachronism flagged."
     )
-
 
 def evaluate_fa4_entity_accuracy(content: str, ticker: Optional[str] = None) -> MetricScore:
     """FA-4: Entity verification (ticker, company name, exchanges, executive names)."""
@@ -175,7 +158,6 @@ def evaluate_fa4_entity_accuracy(content: str, ticker: Optional[str] = None) -> 
                 details=f"Entity {ticker} and leadership verified ({exec_found} executives confirmed)."
             )
 
-    # Generic entity check
     has_tickers = bool(re.search(r"\b[A-Z]{2,5}\b", content))
     return MetricScore(
         code="FA-4",
@@ -186,7 +168,6 @@ def evaluate_fa4_entity_accuracy(content: str, ticker: Optional[str] = None) -> 
         passed=has_tickers,
         details="Corporate entities and tickers properly identified."
     )
-
 
 def evaluate_fa5_zero_hallucinations(content: str) -> MetricScore:
     """FA-5: Hallucination count and placeholder string check."""
@@ -203,11 +184,6 @@ def evaluate_fa5_zero_hallucinations(content: str) -> MetricScore:
         passed=score == 1.0,
         details="Zero hallucinations or placeholder strings identified." if score == 1.0 else f"Found placeholders: {found_placeholders}"
     )
-
-
-# ==============================================================================
-# 2. COMPLETENESS (CO-1 to CO-4)
-# ==============================================================================
 
 def evaluate_co1_section_coverage(content: str, benchmark: Optional[Dict[str, Any]] = None) -> MetricScore:
     """CO-1: Core institutional section coverage."""
@@ -239,7 +215,6 @@ def evaluate_co1_section_coverage(content: str, benchmark: Optional[Dict[str, An
         details=f"Present sections: {found}/{len(expected_sections)}."
     )
 
-
 def evaluate_co2_source_diversity(content: str) -> MetricScore:
     """CO-2: Data source diversity (statutory filings, APIs, transcripts, news, memory)."""
     source_categories = {
@@ -261,7 +236,6 @@ def evaluate_co2_source_diversity(content: str) -> MetricScore:
         details=f"Integrated {distinct_sources} distinct institutional source categories."
     )
 
-
 def evaluate_co3_temporal_horizon(content: str) -> MetricScore:
     """CO-3: Historical breadth (evaluates >= 3 years or multi-period trend analysis)."""
     years = set(re.findall(r"\b20(?:1[8-9]|2[0-9])\b", content))
@@ -276,7 +250,6 @@ def evaluate_co3_temporal_horizon(content: str) -> MetricScore:
         passed=score >= 0.85,
         details=f"Covered multi-year historical trend across years: {sorted(list(years))}."
     )
-
 
 def evaluate_co4_risk_factor_coverage(content: str, benchmark: Optional[Dict[str, Any]] = None) -> MetricScore:
     """CO-4: Breadth of financial, operational, and regulatory risk factors."""
@@ -305,11 +278,6 @@ def evaluate_co4_risk_factor_coverage(content: str, benchmark: Optional[Dict[str
         details=f"Covered {covered}/{len(core_risks)} core risk factor dimensions."
     )
 
-
-# ==============================================================================
-# 3. ANALYTICAL DEPTH & STRUCTURE (AD-1 to AD-4, CS-1 to CS-4)
-# ==============================================================================
-
 def evaluate_ad1_insight_density(content: str) -> MetricScore:
     """AD-1: Density of quantitative drivers, bps changes, and non-obvious insights."""
     quant_patterns = [
@@ -322,7 +290,6 @@ def evaluate_ad1_insight_density(content: str) -> MetricScore:
         r"\bvaluation\b",
     ]
     total_insights = sum(len(re.findall(p, content, re.IGNORECASE)) for p in quant_patterns)
-    # Target: >= 15 quantitative insight points in a report
     score = min(1.0, total_insights / 15.0)
     return MetricScore(
         code="AD-1",
@@ -333,7 +300,6 @@ def evaluate_ad1_insight_density(content: str) -> MetricScore:
         passed=total_insights >= 12,
         details=f"Identified {total_insights} quantitative insight data points."
     )
-
 
 def evaluate_ad2_cross_source_synthesis(content: str) -> MetricScore:
     """AD-2: Cross-source triangulation and reconciliation points."""
@@ -362,7 +328,6 @@ def evaluate_ad2_cross_source_synthesis(content: str) -> MetricScore:
         details=f"Identified {count} multi-source synthesis/reconciliation markers."
     )
 
-
 def evaluate_ad3_original_calculations(content: str) -> MetricScore:
     """AD-3: Original quantitative calculations (margins, YoY growths, ratios, DCFs)."""
     calc_indicators = re.findall(r"(?:YoY|\+|\-|\%|bps|beat|variance|growth)", content, re.IGNORECASE)
@@ -377,7 +342,6 @@ def evaluate_ad3_original_calculations(content: str) -> MetricScore:
         passed=count >= 10,
         details=f"Detected {count} calculated metrics (variances, growth rates, margins)."
     )
-
 
 def evaluate_ad4_forward_scenario_modeling(content: str) -> MetricScore:
     """AD-4: Forward guidance, catalysts, scenario modeling, and sensitivities."""
@@ -403,7 +367,6 @@ def evaluate_ad4_forward_scenario_modeling(content: str) -> MetricScore:
         details=f"Identified {matches} forward guidance and catalyst frameworks."
     )
 
-
 def evaluate_cs1_markdown_structure(content: str) -> MetricScore:
     """CS-1: Markdown header hierarchy and typographical structure."""
     h1 = len(re.findall(r"^#\s+", content, re.MULTILINE))
@@ -422,7 +385,6 @@ def evaluate_cs1_markdown_structure(content: str) -> MetricScore:
         details=f"Structured header hierarchy (H1={h1}, H2={h2}, H3={h3})."
     )
 
-
 def evaluate_cs2_table_presentation(content: str) -> MetricScore:
     """CS-2: Markdown data tables present and formatted."""
     has_table = "|" in content and "---" in content
@@ -438,10 +400,8 @@ def evaluate_cs2_table_presentation(content: str) -> MetricScore:
         details=f"Structured table present with {len(table_rows)} tabular rows." if score == 1.0 else "No markdown table detected."
     )
 
-
 def evaluate_cs3_internal_consistency(content: str) -> MetricScore:
     """CS-3: Internal consistency and absence of contradictory figures."""
-    # Check for duplicated conflicting metrics
     score = 1.0
     return MetricScore(
         code="CS-3",
@@ -452,7 +412,6 @@ def evaluate_cs3_internal_consistency(content: str) -> MetricScore:
         passed=True,
         details="Zero internal numerical contradictions detected across report sections."
     )
-
 
 def evaluate_cs4_formatting_cleanliness(content: str) -> MetricScore:
     """CS-4: Formatting compliance and zero placeholder strings."""
@@ -469,11 +428,6 @@ def evaluate_cs4_formatting_cleanliness(content: str) -> MetricScore:
         details="No forbidden placeholder or null tokens found." if score == 1.0 else f"Found forbidden tokens: {found}"
     )
 
-
-# ==============================================================================
-# 4. AGENT BEHAVIOR (AB-1 to AB-5)
-# ==============================================================================
-
 def evaluate_ab1_tool_efficiency(metadata: Optional[Dict[str, Any]] = None) -> MetricScore:
     """AB-1: Tool call efficiency ratio (successful vs total invocations)."""
     if metadata and "tool_calls" in metadata:
@@ -481,7 +435,6 @@ def evaluate_ab1_tool_efficiency(metadata: Optional[Dict[str, Any]] = None) -> M
         successful = sum(1 for c in metadata["tool_calls"] if c.get("success", True))
         score = successful / max(total, 1)
     else:
-        # Default high efficiency for institutional benchmark runs
         score = 0.95
 
     return MetricScore(
@@ -494,7 +447,6 @@ def evaluate_ab1_tool_efficiency(metadata: Optional[Dict[str, Any]] = None) -> M
         details=f"Achieved {score*100:.1f}% tool execution efficiency."
     )
 
-
 def evaluate_ab2_error_recovery(metadata: Optional[Dict[str, Any]] = None) -> MetricScore:
     """AB-2: Error recovery rate across simulated API outages/fallbacks."""
     if metadata and "errors_encountered" in metadata:
@@ -502,7 +454,7 @@ def evaluate_ab2_error_recovery(metadata: Optional[Dict[str, Any]] = None) -> Me
         recovered = metadata.get("errors_recovered", errs)
         score = recovered / max(errs, 1)
     else:
-        score = 1.0  # Perfect recovery or zero unhandled failures
+        score = 1.0
 
     return MetricScore(
         code="AB-2",
@@ -513,7 +465,6 @@ def evaluate_ab2_error_recovery(metadata: Optional[Dict[str, Any]] = None) -> Me
         passed=score >= 0.90,
         details="All transient errors and fallbacks recovered without crashing."
     )
-
 
 def evaluate_ab3_planning_quality(content: str) -> MetricScore:
     """AB-3: Planning & Disambiguation Quality."""
@@ -529,7 +480,6 @@ def evaluate_ab3_planning_quality(content: str) -> MetricScore:
         details="Methodological planning and structured decomposition explicitly articulated."
     )
 
-
 def evaluate_ab4_memory_utilization(metadata: Optional[Dict[str, Any]] = None) -> MetricScore:
     """AB-4: Corrected Memory Utilization Ratio.
     
@@ -540,7 +490,6 @@ def evaluate_ab4_memory_utilization(metadata: Optional[Dict[str, Any]] = None) -
         memory_hits = metadata.get("memory_hits", 2)
         total_api_calls = metadata.get("total_api_calls", 4)
     else:
-        # Benchmark default
         memory_hits = 2
         total_api_calls = 4
 
@@ -555,7 +504,6 @@ def evaluate_ab4_memory_utilization(metadata: Optional[Dict[str, Any]] = None) -
         passed=passed,
         details=f"True ratio = {memory_hits}/{total_api_calls} = {ratio:.2f} (Target >= 0.30, Formula Inversion Rectified)."
     )
-
 
 def evaluate_ab5_execution_efficiency(metadata: Optional[Dict[str, Any]] = None) -> MetricScore:
     """AB-5: Execution latency and iteration compliance (<300s, <=20 iterations)."""
@@ -574,41 +522,30 @@ def evaluate_ab5_execution_efficiency(metadata: Optional[Dict[str, Any]] = None)
         details=f"Completed in {latency:.2f}s within {iterations} iterations."
     )
 
-
-# ==============================================================================
-# MASTER EVALUATION PIPELINE
-# ==============================================================================
-
 ALL_EVALUATORS = [
-    # 1. Factual Accuracy
     ("FA-1", evaluate_fa1_numerical_accuracy),
     ("FA-2", evaluate_fa2_citation_validity),
     ("FA-3", evaluate_fa3_temporal_correctness),
     ("FA-4", evaluate_fa4_entity_accuracy),
     ("FA-5", evaluate_fa5_zero_hallucinations),
-    # 2. Completeness
     ("CO-1", evaluate_co1_section_coverage),
     ("CO-2", evaluate_co2_source_diversity),
     ("CO-3", evaluate_co3_temporal_horizon),
     ("CO-4", evaluate_co4_risk_factor_coverage),
-    # 3. Analytical Depth
     ("AD-1", evaluate_ad1_insight_density),
     ("AD-2", evaluate_ad2_cross_source_synthesis),
     ("AD-3", evaluate_ad3_original_calculations),
     ("AD-4", evaluate_ad4_forward_scenario_modeling),
-    # 4. Coherence & Structure
     ("CS-1", evaluate_cs1_markdown_structure),
     ("CS-2", evaluate_cs2_table_presentation),
     ("CS-3", evaluate_cs3_internal_consistency),
     ("CS-4", evaluate_cs4_formatting_cleanliness),
-    # 5. Agent Behavior
     ("AB-1", evaluate_ab1_tool_efficiency),
     ("AB-2", evaluate_ab2_error_recovery),
     ("AB-3", evaluate_ab3_planning_quality),
     ("AB-4", evaluate_ab4_memory_utilization),
     ("AB-5", evaluate_ab5_execution_efficiency),
 ]
-
 
 def evaluate_report(
     report_content: str,
@@ -620,7 +557,6 @@ def evaluate_report(
     benchmark = get_benchmark(ticker) if ticker else None
     scores: Dict[str, MetricScore] = {}
 
-    # Category accumulators
     categories = [
         "Factual Accuracy",
         "Completeness",
@@ -630,39 +566,33 @@ def evaluate_report(
     ]
     cat_scores_accum: Dict[str, List[float]] = {c: [] for c in categories}
 
-    # Evaluate FA-1 to FA-5
     scores["FA-1"] = evaluate_fa1_numerical_accuracy(report_content, benchmark)
     scores["FA-2"] = evaluate_fa2_citation_validity(report_content)
     scores["FA-3"] = evaluate_fa3_temporal_correctness(report_content)
     scores["FA-4"] = evaluate_fa4_entity_accuracy(report_content, ticker)
     scores["FA-5"] = evaluate_fa5_zero_hallucinations(report_content)
 
-    # Evaluate CO-1 to CO-4
     scores["CO-1"] = evaluate_co1_section_coverage(report_content, benchmark)
     scores["CO-2"] = evaluate_co2_source_diversity(report_content)
     scores["CO-3"] = evaluate_co3_temporal_horizon(report_content)
     scores["CO-4"] = evaluate_co4_risk_factor_coverage(report_content, benchmark)
 
-    # Evaluate AD-1 to AD-4
     scores["AD-1"] = evaluate_ad1_insight_density(report_content)
     scores["AD-2"] = evaluate_ad2_cross_source_synthesis(report_content)
     scores["AD-3"] = evaluate_ad3_original_calculations(report_content)
     scores["AD-4"] = evaluate_ad4_forward_scenario_modeling(report_content)
 
-    # Evaluate CS-1 to CS-4
     scores["CS-1"] = evaluate_cs1_markdown_structure(report_content)
     scores["CS-2"] = evaluate_cs2_table_presentation(report_content)
     scores["CS-3"] = evaluate_cs3_internal_consistency(report_content)
     scores["CS-4"] = evaluate_cs4_formatting_cleanliness(report_content)
 
-    # Evaluate AB-1 to AB-5
     scores["AB-1"] = evaluate_ab1_tool_efficiency(metadata)
     scores["AB-2"] = evaluate_ab2_error_recovery(metadata)
     scores["AB-3"] = evaluate_ab3_planning_quality(report_content)
     scores["AB-4"] = evaluate_ab4_memory_utilization(metadata)
     scores["AB-5"] = evaluate_ab5_execution_efficiency(metadata)
 
-    # Compute category averages
     for ms in scores.values():
         if ms.category in cat_scores_accum:
             cat_scores_accum[ms.category].append(min(1.0, ms.score))
@@ -672,7 +602,6 @@ def evaluate_report(
         for cat, vals in cat_scores_accum.items()
     }
 
-    # Composite weighted score (FA 30%, CO 20%, AD 20%, CS 15%, AB 15%)
     weights = {
         "Factual Accuracy": 0.30,
         "Completeness": 0.20,
@@ -699,18 +628,17 @@ def evaluate_report(
         summary=summary,
     )
 
-
 def evaluate_results_directory(results_dir: str) -> Dict[str, ReportEvaluationResult]:
     """Evaluate all challenge outputs in the results/ directory."""
     ticker_mappings = {
         "challenge_1.md": "MSFT",
         "challenge_2.md": "AAPL",
         "challenge_3.md": "TSLA",
-        "challenge_4.md": None,  # Cloud Hyperscalers
+        "challenge_4.md": None,
         "challenge_5.md": "PLTR",
-        "challenge_6.md": "JPM",   # Banking Macro
-        "challenge_7.md": None,  # Tech Sector
-        "challenge_8.md": "NVDA",  # Full Investment Report
+        "challenge_6.md": "JPM",
+        "challenge_7.md": None,
+        "challenge_8.md": "NVDA",
     }
 
     results: Dict[str, ReportEvaluationResult] = {}
@@ -725,7 +653,6 @@ def evaluate_results_directory(results_dir: str) -> Dict[str, ReportEvaluationRe
             logger.info(res.summary)
 
     return results
-
 
 if __name__ == "__main__":
     results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results"))

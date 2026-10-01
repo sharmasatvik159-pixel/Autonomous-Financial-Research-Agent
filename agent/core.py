@@ -28,7 +28,6 @@ from memory.episodic import EpisodicMemoryStore, EpisodicRecord
 
 logger = logging.getLogger("ARA1.Core")
 
-
 class AgentExecutionResult(BaseModel):
     """Complete deliverable envelope returned after agent execution."""
     query: str
@@ -40,7 +39,6 @@ class AgentExecutionResult(BaseModel):
     latency_seconds: float = 0.0
     terminated_reason: str = "completed"
     memory_hits: int = 0
-
 
 class FinancialResearchAgent:
     """Autonomous Financial Research Agent (ARA-1)."""
@@ -66,12 +64,10 @@ class FinancialResearchAgent:
         self.max_iterations = max_iterations or self.settings.MAX_TOOL_CALLS_PER_TASK
         self.pattern = pattern.upper()
 
-        # Attach standard realistic mock handlers to tools for testing and Challenge 1
         self._attach_default_mock_handlers()
 
     def _attach_default_mock_handlers(self) -> None:
         """Configures tools with realistic financial mock data for offline testing."""
-        # company_profile mock
         cp_tool = self.tool_registry.get_tool("company_profile")
         if cp_tool and hasattr(cp_tool, "mock_handler"):
             def mock_cp(ticker: str) -> Dict[str, Any]:
@@ -95,7 +91,6 @@ class FinancialResearchAgent:
                 return {"ticker": t, "name": f"{t} Corp", "sector": "Technology", "market_cap": "$100 Billion"}
             cp_tool.mock_handler = mock_cp
 
-        # financial_data_api mock
         fin_tool = self.tool_registry.get_tool("financial_data_api")
         if fin_tool and hasattr(fin_tool, "mock_handler"):
             def mock_fin(ticker: str, statement_type: str = "income_statement", period: str = "annual", years: int = 3) -> Dict[str, Any]:
@@ -132,7 +127,6 @@ class FinancialResearchAgent:
                 return {"ticker": t, "revenue": "$50B", "status": "simulated_data"}
             fin_tool.mock_handler = mock_fin
 
-        # web_search mock
         ws_tool = self.tool_registry.get_tool("web_search")
         if ws_tool and hasattr(ws_tool, "mock_handler"):
             def mock_ws(query: str, num_results: int = 5, date_range: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -179,9 +173,6 @@ class FinancialResearchAgent:
 
         target_ticker = self._extract_ticker_heuristic(query)
 
-        # ---------------------------------------------------------------------
-        # Pre-Execution: Memory Inspection (Layer 2 Vector Memory)
-        # ---------------------------------------------------------------------
         memory_context = []
         memory_hits = 0
         try:
@@ -204,9 +195,6 @@ class FinancialResearchAgent:
         except Exception as e:
             logger.warning(f"Memory check skipped due to error: {e}")
 
-        # ---------------------------------------------------------------------
-        # Pre-Execution: Episodic Memory Inspection (Layer 3 Procedural Learning)
-        # ---------------------------------------------------------------------
         procedural_guidance = ""
         try:
             episodes = self.episodic_store.retrieve_strategy(query=query, target_ticker=target_ticker, top_k=1)
@@ -220,7 +208,6 @@ class FinancialResearchAgent:
         except Exception as e:
             logger.warning(f"Episodic memory check skipped: {e}")
 
-        # Choose execution path based on pattern
         if self.pattern == "PLAN_AND_EXECUTE":
             result = self._execute_plan_and_execute(query, memory_context, procedural_guidance, start_time, memory_hits, target_ticker)
         else:
@@ -239,7 +226,6 @@ class FinancialResearchAgent:
     ) -> AgentExecutionResult:
         """Executes the standard ReAct (Thought-Action-Observation) loop."""
         tools_metadata = self.tool_registry.get_openai_schemas(only_unlocked=True)
-        # Extract flat dictionary representations for prompt formatting
         flat_tools = [
             {
                 "name": t["function"]["name"],
@@ -263,36 +249,29 @@ class FinancialResearchAgent:
         terminated_reason = "max_iterations"
         final_report = ""
 
-        # Main ReAct loop
         for step in range(1, self.max_iterations + 1):
-            # Manage working memory context limits via progressive summarization
             history_lines = self.context_manager.manage_context(history_lines)
 
             prompt = f"{system_prompt}\n\n" + "\n\n".join(history_lines) + f"\n\nThought {step}:"
 
-            # Invoke LLM
             llm_response = self.llm_client.invoke(prompt)
 
-            # Prepend 'Thought:' if parser requires it
             response_text = llm_response.content.strip()
             if not response_text.lower().startswith("thought:") and not response_text.lower().startswith("final answer:"):
                 response_text = f"Thought: {response_text}"
 
             parsed = ReActOutputParser.parse(response_text, tool_calls=llm_response.tool_calls)
 
-            # Case 1: Agent determines task is finished
             if isinstance(parsed, AgentFinish):
                 final_report = parsed.return_values.get("output", "")
                 self.agent_logger.log_thought(step, parsed.thought or "Finalizing research report.")
                 terminated_reason = "completed"
                 break
 
-            # Case 2: Agent takes action (invoking tool)
             elif isinstance(parsed, AgentAction):
                 self.agent_logger.log_thought(step, parsed.thought)
                 self.agent_logger.log_action(step, parsed.tool, parsed.tool_input)
 
-                # Execute tool via ToolRegistry
                 tool_res: ToolResult = self.tool_registry.execute(
                     parsed.tool,
                     parsed.tool_input,
@@ -308,7 +287,6 @@ class FinancialResearchAgent:
                     "fallback_used": tool_res.fallback_used,
                 })
 
-                # Record successful fallback route into Layer 3 Episodic Memory
                 if tool_res.fallback_used:
                     self.episodic_store.record_error_recovery(
                         failed_tool=parsed.tool,
@@ -329,16 +307,13 @@ class FinancialResearchAgent:
                     success=tool_res.success,
                 )
 
-                # Compact excessively large observation strings
                 compact_obs = self.context_manager.compact_observation(obs_payload, max_chars=2000)
 
-                # Update history for next iteration
                 history_lines.append(f"Thought: {parsed.thought}")
                 history_lines.append(f"Action: {parsed.tool}")
                 history_lines.append(f"Action Input: {parsed.tool_input}")
                 history_lines.append(f"Observation: {compact_obs}")
 
-        # If loop exited on max iterations without Final Answer, generate report from observations
         if not final_report:
             synthesis_prompt = (
                 f"You have reached the maximum tool iterations for query: '{query}'.\n"
@@ -348,7 +323,6 @@ class FinancialResearchAgent:
             syn_res = self.llm_client.invoke(synthesis_prompt)
             final_report = syn_res.content
 
-        # Persist completed research episode into Layer 3 Episodic Memory
         if terminated_reason == "completed" and tool_calls_executed:
             try:
                 self.episodic_store.record_episode(
@@ -397,7 +371,6 @@ class FinancialResearchAgent:
         ]
         tools_str = format_tool_descriptions(flat_tools)
 
-        # 1. Planner Stage
         planner_prompt = PLANNER_PROMPT_TEMPLATE.format(tool_descriptions=tools_str, query=query)
         if procedural_guidance:
             planner_prompt += f"\n\n{procedural_guidance}"
@@ -407,7 +380,6 @@ class FinancialResearchAgent:
 
         self.agent_logger.log_thought(0, f"Planner formulated {len(parsed_plan.plan)} steps: {parsed_plan.plan}")
 
-        # 2. Execution Stage: Execute plan steps using ReAct
         react_res = self._execute_react(
             query=query,
             memory_context=memory_context,

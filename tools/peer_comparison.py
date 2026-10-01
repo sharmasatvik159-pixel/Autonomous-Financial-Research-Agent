@@ -16,7 +16,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.PeerComparisonTool")
 
-
 class PeerComparisonTool(BaseTool):
     """Tool for industry peer identification, competitive metric benchmarking, and ranking."""
 
@@ -64,9 +63,6 @@ class PeerComparisonTool(BaseTool):
     def _build_peer_matrix(self, ticker: str, num_peers: int, metrics: List[str]) -> Dict[str, Any]:
         """Constructs standardized institutional peer matrix for major sectors."""
 
-        # ---------------------------------------------------------------------
-        # Sector 1: Hyperscale Cloud Infrastructure (AMZN, MSFT, GOOGL)
-        # ---------------------------------------------------------------------
         if ticker in ("AMZN", "MSFT", "GOOGL", "GOOG", "CLOUD"):
             cloud_peers = [
                 {
@@ -136,9 +132,6 @@ class PeerComparisonTool(BaseTool):
                 "source_tier": 2,
             }
 
-        # ---------------------------------------------------------------------
-        # Sector 2: Electric Vehicles & Autonomous Tech (TSLA)
-        # ---------------------------------------------------------------------
         elif ticker == "TSLA":
             ev_peers = [
                 {
@@ -220,9 +213,6 @@ class PeerComparisonTool(BaseTool):
                 "source_tier": 2,
             }
 
-        # ---------------------------------------------------------------------
-        # Sector 3: Generic / Fallback Peer Universe
-        # ---------------------------------------------------------------------
         else:
             generic_peers = [
                 {

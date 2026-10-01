@@ -16,7 +16,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -25,7 +24,6 @@ from agent.llm_client import LLMClient, MockChatModel
 from agent.prompts import get_challenge_4_prompt
 from tools.tool_registry import create_default_registry
 from config.settings import get_settings
-
 
 class Challenge4MockLLM(MockChatModel):
     """Context-aware mock LLM that follows the ReAct cycle for Cloud Hyperscaler Comparison."""
@@ -36,7 +34,6 @@ class Challenge4MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Run multi-company peer comparison matrix across AMZN, MSFT, and GOOGL
         if self.step == 1:
             content = (
                 "Thought: To begin the comparative cloud analysis across Amazon, Microsoft, and Alphabet, "
@@ -45,7 +42,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: peer_comparison\n"
                 "Action Input: {\"ticker\": \"AMZN\", \"num_peers\": 3, \"metrics\": [\"revenue_growth\", \"operating_margin\", \"pe_ratio\"]}"
             )
-        # Step 2: Query financial data API for Amazon segment disclosures (AWS revenue & operating income)
         elif self.step == 2:
             content = (
                 "Thought: I need specific segment reporting for Amazon Web Services (AWS) to analyze its annual "
@@ -53,7 +49,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"AMZN\", \"statement_type\": \"income_statement\", \"period\": \"annual\", \"years\": 3}"
             )
-        # Step 3: Query financial data API for Microsoft Intelligent Cloud segment disclosures
         elif self.step == 3:
             content = (
                 "Thought: Next, I need Microsoft's segment disclosures to evaluate Intelligent Cloud and Azure "
@@ -61,7 +56,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"MSFT\", \"statement_type\": \"income_statement\", \"period\": \"annual\", \"years\": 3}"
             )
-        # Step 4: Query SEC filings for Alphabet / Google Cloud segment profitability breakdown
         elif self.step == 4:
             content = (
                 "Thought: I must inspect SEC Form 10-K segment reporting for Alphabet to verify Google Cloud Platform's "
@@ -69,7 +63,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: sec_filing_search\n"
                 "Action Input: {\"ticker\": \"GOOGL\", \"filing_type\": \"10-K\", \"section\": \"Item 7\"}"
             )
-        # Step 5: Execute calculation engine to compute relative growth differentials and CAGR
         elif self.step == 5:
             content = (
                 "Thought: I will use the calculation engine to compute compound annual growth rates (CAGR) "
@@ -77,7 +70,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: calculation_engine\n"
                 "Action Input: {\"calculation_type\": \"cagr\", \"inputs\": {\"start_val\": 62202, \"end_val\": 105362, \"periods\": 2}}"
             )
-        # Step 6: Fact check market share numbers and AI revenue run-rates
         elif self.step == 6:
             content = (
                 "Thought: Before synthesizing the comprehensive report, I must cross-verify global cloud market share "
@@ -85,7 +77,6 @@ class Challenge4MockLLM(MockChatModel):
                 "Action: fact_checker\n"
                 "Action Input: {\"claim\": \"AWS retains roughly 31 percent global cloud infrastructure market share while Azure holds 25 percent and Google Cloud holds 11 percent\", \"ticker\": \"AMZN\"}"
             )
-        # Step 7: Final Comprehensive Cloud Industry Report Synthesis
         else:
             content = (
                 "Thought: I have collected comprehensive peer benchmarking multiples, segment revenue and margin breakdowns "
@@ -180,7 +171,6 @@ class Challenge4MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 150, "completion_tokens": 350}})
 
-
 def run_challenge_4(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 4 end-to-end and writes results/challenge_4.md."""
     settings = get_settings()
@@ -215,7 +205,6 @@ def run_challenge_4(output_dir: Optional[str] = None) -> str:
     result = agent.execute(query, session_id="challenge-4-session")
     elapsed = time.time() - start_time
 
-    # Ensure results/challenge_4.md contains the full markdown synthesis
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(result.report)
 
@@ -225,7 +214,6 @@ def run_challenge_4(output_dir: Optional[str] = None) -> str:
     print(f"[TOOLS] Invoked: {[tc['tool'] for tc in result.tool_calls]}")
     print("=" * 75)
     return str(report_path)
-
 
 if __name__ == "__main__":
     run_challenge_4()

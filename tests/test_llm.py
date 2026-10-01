@@ -4,7 +4,6 @@ import pytest
 from agent.llm_client import LLMClient
 from agent.logger import get_agent_logger
 
-
 def test_llm_client_mock_invocation():
     """Verify LLM client produces structured responses in mock mode."""
     client = LLMClient(force_mock=True)
@@ -16,7 +15,6 @@ def test_llm_client_mock_invocation():
     assert res.completion_tokens > 0
     assert res.total_tokens == res.prompt_tokens + res.completion_tokens
     assert res.latency_seconds >= 0.0
-
 
 def test_llm_client_usage_accumulation():
     """Verify cumulative token and cost tracking across multiple invocations."""
@@ -30,7 +28,6 @@ def test_llm_client_usage_accumulation():
     assert summary["total_calls"] == 2
     assert summary["total_tokens"] == res1.total_tokens + res2.total_tokens
     assert summary["estimated_cost_usd"] > 0.0
-
 
 def test_agent_logger_trace_recording():
     """Verify logger records thought, action, observation, and LLM calls."""

@@ -20,7 +20,6 @@ from config.settings import get_settings
 
 logger = logging.getLogger("ARA1.ContextManager")
 
-
 class ContextBudgetConfig(BaseModel):
     """Configuration for context limits and compression thresholds."""
     max_context_tokens: int = Field(default=128000, description="Nominal model context window limit")
@@ -28,7 +27,6 @@ class ContextBudgetConfig(BaseModel):
     max_history_tokens: int = Field(default=6000, description="Target token budget for ReAct history loop")
     preserve_recent_steps: int = Field(default=2, description="Number of recent ReAct cycles to keep uncompressed")
     chars_per_token: float = Field(default=3.8, description="Average characters per token heuristic")
-
 
 class ContextManager:
     """Manages working memory tokens via progressive summarization and selective retention."""
@@ -68,7 +66,6 @@ class ContextManager:
         if observation is None:
             return "No data returned."
 
-        # Case 1: Structured dict or list (e.g. from financial_data_api or sec_filing)
         if isinstance(observation, dict):
             return self._format_dict_as_markdown(observation, max_chars=max_chars)
         elif isinstance(observation, list):
@@ -76,7 +73,6 @@ class ContextManager:
 
         text = str(observation).strip()
 
-        # If text is JSON formatted, try parsing
         if (text.startswith("{") and text.endswith("}")) or (text.startswith("[") and text.endswith("]")):
             try:
                 parsed = json.loads(text)
@@ -90,7 +86,6 @@ class ContextManager:
         if len(text) <= max_chars:
             return text
 
-        # Extract sentences with numbers, currencies, percentages, and dates
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         valuable_lines = []
         num_pattern = re.compile(r"(\$|%|€|£|\b\d+(?:\.\d+)?\s*(?:Billion|Million|Trillion|B|M|K)?\b)", re.IGNORECASE)
@@ -111,7 +106,6 @@ class ContextManager:
         """Converts structured dictionaries into concise key-value or Markdown tables."""
         lines = []
 
-        # If data contains annual_metrics list (financial data api format)
         if "annual_metrics" in data and isinstance(data["annual_metrics"], list):
             metrics = data["annual_metrics"]
             if metrics and isinstance(metrics[0], dict):
@@ -124,7 +118,6 @@ class ContextManager:
                     rows.append(row)
                 lines.append("\n".join(rows))
 
-        # Check for segment performance
         if "segment_performance" in data and isinstance(data["segment_performance"], dict):
             lines.append("### Segment Performance Breakdown:")
             for seg, vals in data["segment_performance"].items():
@@ -134,7 +127,6 @@ class ContextManager:
                 else:
                     lines.append(f"- **{seg.replace('_', ' ')}**: {vals}")
 
-        # Other top-level scalars
         scalar_items = []
         for k, v in data.items():
             if k in ("annual_metrics", "segment_performance"):
@@ -155,7 +147,6 @@ class ContextManager:
         lines = []
         for idx, item in enumerate(items[:15], start=1):
             if isinstance(item, dict):
-                # Search result format: title, url, snippet
                 title = item.get("title") or item.get("headline") or f"Item {idx}"
                 snippet = item.get("snippet") or item.get("content") or item.get("date") or ""
                 url = item.get("url") or ""
@@ -187,7 +178,6 @@ class ContextManager:
         if not history_lines:
             return []
 
-        # Identify fixed header lines (Research Query, Prior Memory)
         header_lines: List[str] = []
         step_lines: List[str] = []
 
@@ -197,7 +187,6 @@ class ContextManager:
             else:
                 step_lines.append(line)
 
-        # Break step_lines into cycles (each cycle starts with 'Thought:')
         cycles: List[List[str]] = []
         current_cycle: List[str] = []
 
@@ -210,15 +199,12 @@ class ContextManager:
         if current_cycle:
             cycles.append(current_cycle)
 
-        # If few cycles, nothing to summarize
         if len(cycles) <= preserve_recent_cycles:
             return history_lines
 
-        # Separate older cycles from recent cycles
         older_cycles = cycles[:-preserve_recent_cycles]
         recent_cycles = cycles[-preserve_recent_cycles:]
 
-        # Extract high-density findings from older cycles
         findings: List[str] = []
         num_pattern = re.compile(r"(\$|%|€|£|\b\d+(?:\.\d+)?\s*(?:Billion|Million|Trillion|B|M|K)?\b)", re.IGNORECASE)
 
@@ -232,7 +218,6 @@ class ContextManager:
                     action_input = item.replace("Action Input:", "").strip()
                 elif item.startswith("Observation:"):
                     obs_body = item.replace("Observation:", "").strip()
-                    # Extract quantitative facts or first key sentence
                     lines = [ln.strip() for ln in obs_body.splitlines() if ln.strip()]
                     key_metrics = [ln for ln in lines if num_pattern.search(ln)]
                     if key_metrics:
@@ -271,7 +256,6 @@ class ContextManager:
         """Monitors working token usage and applies compaction/summarization if budget exceeded."""
         current_tokens = self.estimate_tokens(history_lines)
 
-        # Check if history exceeds threshold
         if not force_summary and current_tokens <= self.config.max_history_tokens:
             return history_lines
 
@@ -280,13 +264,11 @@ class ContextManager:
             f"({self.config.max_history_tokens}). Invoking progressive summarization."
         )
 
-        # Step 1: Progressive summarization of older cycles
         compacted_history = self.progressive_summarize(
             history_lines,
             preserve_recent_cycles=self.config.preserve_recent_steps
         )
 
-        # Step 2: If still exceeds budget, aggressively compact recent observations
         new_token_count = self.estimate_tokens(compacted_history)
         if new_token_count > self.config.max_history_tokens:
             logger.info("Applying secondary selective observation compaction.")

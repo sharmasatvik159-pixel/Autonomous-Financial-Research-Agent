@@ -16,7 +16,6 @@ import random
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -29,8 +28,6 @@ from agent.circuit_breaker import get_circuit_breaker_registry
 from memory.vector_store import FinancialVectorStore, ResearchDocument
 from config.settings import get_settings
 
-
-# Seed documents for NVIDIA in ChromaDB persistent memory
 NVDA_SEED_DOCUMENTS = [
     ResearchDocument(
         id="nvda-hopper-arch-001",
@@ -96,7 +93,6 @@ NVDA_SEED_DOCUMENTS = [
     ),
 ]
 
-
 class FailureInjectingToolWrapper(BaseTool):
     """Wraps an existing tool to inject intermittent 50% simulated transient failures."""
 
@@ -109,7 +105,6 @@ class FailureInjectingToolWrapper(BaseTool):
 
     def run(self, **kwargs: Any) -> Any:
         self.call_count += 1
-        # Intermittent 50% failure simulation (odd-numbered calls fail)
         if self.call_count % 2 == 1:
             self.failure_count += 1
             err_msg = f"503 Service Unavailable: Simulated transient outage on {self.name} (call #{self.call_count})"
@@ -119,18 +114,15 @@ class FailureInjectingToolWrapper(BaseTool):
         print(f"    [+] {self.name} call #{self.call_count} succeeded against upstream.")
         return self.inner_tool.run(**kwargs)
 
-
 def prepare_resilient_registry() -> ToolRegistry:
     """Creates registry with 50% failure injection on financial_data_api and sec_filing_search."""
     registry = create_default_registry()
 
-    # Wrap sec_filing_search with 50% failure rate
     sec_tool = registry.get_tool("sec_filing_search")
     if sec_tool:
         failing_sec = FailureInjectingToolWrapper(sec_tool, failure_rate=0.50)
         registry.register_tool(failing_sec)
 
-    # Wrap financial_data_api with 50% failure rate
     fin_tool = registry.get_tool("financial_data_api")
     if fin_tool:
         failing_fin = FailureInjectingToolWrapper(fin_tool, failure_rate=0.50)
@@ -138,14 +130,12 @@ def prepare_resilient_registry() -> ToolRegistry:
 
     return registry
 
-
 def seed_nvidia_memory():
     """Populates ChromaDB persistent vector memory with authoritative NVIDIA findings."""
     store = FinancialVectorStore()
     print(f"[*] Seeding long-term ChromaDB vector store with {len(NVDA_SEED_DOCUMENTS)} NVIDIA documents...")
     store.add_documents(NVDA_SEED_DOCUMENTS)
     print(f"[+] ChromaDB total document count: {store.count()} (NVDA count: {store.count(ticker='NVDA')})")
-
 
 class Challenge8MockLLM(MockChatModel):
     """Context-aware mock LLM that executes ReAct reasoning, handles fallbacks, and synthesizes 15+ page report."""
@@ -157,7 +147,6 @@ class Challenge8MockLLM(MockChatModel):
     def invoke(self, messages, tools=None):
         self.step += 1
 
-        # Step 1: Attempt sec_filing_search (triggers simulated outage, triggers fallback)
         if self.step == 1:
             content = (
                 "Thought: I need official statutory disclosures from NVIDIA's Form 10-K to analyze historical revenues and margins. "
@@ -165,7 +154,6 @@ class Challenge8MockLLM(MockChatModel):
                 "Action: sec_filing_search\n"
                 "Action Input: {\"ticker\": \"NVDA\", \"filing_type\": \"10-K\", \"year\": 2024}"
             )
-        # Step 2: Query long-term vector memory for architecture and segment data (Fallback to memory)
         elif self.step == 2:
             content = (
                 "Thought: The primary regulatory API encountered a transient failure. In accordance with ARA-1 resilience protocols, "
@@ -173,7 +161,6 @@ class Challenge8MockLLM(MockChatModel):
                 "Action: vector_db_search\n"
                 "Action Input: {\"query\": \"NVIDIA Hopper Blackwell architecture and audited FY24 Data Center revenue\", \"top_k\": 4, \"filter\": {\"ticker\": \"NVDA\"}}"
             )
-        # Step 3: Query web search for forward catalysts, hyperscaler demand, and Blackwell deployment
         elif self.step == 3:
             content = (
                 "Thought: Vector memory provided verified audited statutory metrics. Now I need recent analyst commentary, hyperscaler CapEx "
@@ -181,14 +168,12 @@ class Challenge8MockLLM(MockChatModel):
                 "Action: web_search\n"
                 "Action Input: {\"query\": \"NVIDIA Blackwell GB200 TSMC CoWoS capacity hyperscaler demand FY25\", \"num_results\": 4}"
             )
-        # Step 4: Execute peer comparison against AMD, INTC, and hyperscalers
         elif self.step == 4:
             content = (
                 "Thought: I need valuation multiples and growth benchmarking comparing NVIDIA with semiconductor peers (AMD, INTC, AVGO).\n"
                 "Action: peer_comparison\n"
                 "Action Input: {\"ticker\": \"NVDA\", \"num_peers\": 3}"
             )
-        # Step 5: Execute calculation engine for DCF valuation and WACC
         elif self.step == 5:
             content = (
                 "Thought: I need deterministic valuation modeling using our calculation engine to compute a 5-year DCF intrinsic value "
@@ -196,13 +181,11 @@ class Challenge8MockLLM(MockChatModel):
                 "Action: calculation_engine\n"
                 "Action Input: {\"calculation_type\": \"dcf\", \"inputs\": {\"cash_flows\": [45.0, 62.0, 78.0, 92.0, 105.0], \"discount_rate\": 0.10, \"terminal_growth\": 0.035}}"
             )
-        # Step 6: Synthesize complete, comprehensive 15+ page institutional report
         else:
             content = generate_full_nvidia_report()
 
         from langchain_core.messages import AIMessage
         return AIMessage(content=content)
-
 
 def generate_full_nvidia_report() -> str:
     """Generates the full, comprehensive 15+ page institutional research report for NVIDIA Corporation."""
@@ -495,7 +478,6 @@ Audit Execution Engine: ARA-1 Day 9 Resilience & Day 6 Memory Stack
 ```
 """
 
-
 def run_challenge_8_pipeline():
     """Executes the Challenge 8 benchmark pipeline."""
     print("=" * 80)
@@ -503,25 +485,20 @@ def run_challenge_8_pipeline():
     print("SIMULATING 50% INTERMITTENT FAILURE RATE & SYSTEM RESILIENCE")
     print("=" * 80)
 
-    # 1. Seed vector memory with NVIDIA documents
     seed_nvidia_memory()
 
-    # 2. Build resilient registry with failure injection
     registry = prepare_resilient_registry()
 
-    # 3. Initialize mock LLM client with ReAct reasoning loop
     mock_llm = Challenge8MockLLM()
     llm_client = LLMClient(force_mock=True)
     llm_client._chat_model = mock_llm
 
-    # 4. Initialize agent
     agent = FinancialResearchAgent(
         llm_client=llm_client,
         tool_registry=registry,
         max_iterations=8,
     )
 
-    # 5. Run agent execution
     prompt = get_challenge_8_prompt()
     print("\n[*] Executing FinancialResearchAgent ReAct reasoning loop...")
     start_time = time.perf_counter()
@@ -531,7 +508,6 @@ def run_challenge_8_pipeline():
     print(f"\n[+] Agent execution completed in {elapsed:.2f}s.")
     print(f"[+] Total tool calls: {len(result.tool_calls)} | Terminated: {result.terminated_reason}")
 
-    # 6. Save report to results/challenge_8.md
     output_path = os.path.abspath(os.path.join(ROOT_DIR, "results", "challenge_8.md"))
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(result.report)
@@ -540,7 +516,6 @@ def run_challenge_8_pipeline():
     print(f"[+] Report size: {len(result.report)} characters / {len(result.report.splitlines())} lines.")
 
     return result
-
 
 if __name__ == "__main__":
     run_challenge_8_pipeline()

@@ -11,7 +11,6 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure root path is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -22,7 +21,6 @@ from tools.tool_registry import create_default_registry
 from memory.vector_store import FinancialVectorStore, ResearchDocument
 from config.settings import get_settings
 
-
 class Challenge1MockLLM(MockChatModel):
     """Context-aware mock LLM that follows the ReAct cycle to execute Challenge 1 tools."""
 
@@ -32,7 +30,6 @@ class Challenge1MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Request company profile
         if self.step == 1:
             content = (
                 "Thought: To create a comprehensive profile for Microsoft Corporation, I need to start by retrieving "
@@ -40,7 +37,6 @@ class Challenge1MockLLM(MockChatModel):
                 "Action: company_profile\n"
                 "Action Input: {\"ticker\": \"MSFT\"}"
             )
-        # Step 2: Request financial statements
         elif self.step == 2:
             content = (
                 "Thought: Now that I have the corporate overview and leadership, I need structured financial statements "
@@ -48,7 +44,6 @@ class Challenge1MockLLM(MockChatModel):
                 "Action: financial_data_api\n"
                 "Action Input: {\"ticker\": \"MSFT\", \"statement_type\": \"income_statement\", \"period\": \"annual\", \"years\": 3}"
             )
-        # Step 3: Request web search for recent news and AI developments
         elif self.step == 3:
             content = (
                 "Thought: With fundamentals and business profile in place, I need recent news and analyst commentary "
@@ -56,7 +51,6 @@ class Challenge1MockLLM(MockChatModel):
                 "Action: web_search\n"
                 "Action Input: {\"query\": \"Microsoft Azure AI datacenter infrastructure growth Satya Nadella\", \"num_results\": 3}"
             )
-        # Step 4: Final Report synthesis
         else:
             content = (
                 "Thought: I have gathered sufficient data across company profile, financial statements, segment reporting, "
@@ -99,7 +93,6 @@ class Challenge1MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 120, "completion_tokens": 180}})
 
-
 def run_challenge_1(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 1 end-to-end and writes results/challenge_1.md."""
     settings = get_settings()
@@ -110,7 +103,6 @@ def run_challenge_1(output_dir: Optional[str] = None) -> str:
     print("ARA-1 RESEARCH RUNNER: CHALLENGE 1 (Microsoft Corporation Profile)")
     print("=" * 70)
 
-    # Use context-aware mock LLM when offline/mock mode is active
     if settings.MOCK_MODE or not settings.is_openai_configured():
         custom_llm = LLMClient(force_mock=True)
         custom_llm._chat_model = Challenge1MockLLM()
@@ -139,14 +131,12 @@ def run_challenge_1(output_dir: Optional[str] = None) -> str:
     print(f"Termination Reason: {result.terminated_reason}")
     print(f"Tools Invoked: {[tc['tool'] for tc in result.tool_calls]}")
 
-    # Write output to results/challenge_1.md
     target_file = out_dir / "challenge_1.md"
     with open(target_file, "w", encoding="utf-8") as f:
         f.write(result.report)
 
     print(f"\nReport successfully saved to: {target_file}")
     return result.report
-
 
 if __name__ == "__main__":
     run_challenge_1()

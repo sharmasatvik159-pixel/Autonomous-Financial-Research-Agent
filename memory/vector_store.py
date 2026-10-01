@@ -28,7 +28,6 @@ logger = logging.getLogger("ARA1.VectorStore")
 _CHROMA_CLIENT_CACHE: Dict[str, Any] = {}
 _CHROMA_LOCK = threading.Lock()
 
-
 class ResearchDocument(BaseModel):
     """Schema for individual research documents stored in long-term memory."""
     id: str = Field(description="Unique identifier for the record (e.g. msft-10k-2024-item1a-001)")
@@ -52,7 +51,7 @@ class ResearchDocument(BaseModel):
             "source_type": self.source_type,
             "date": self.date,
             "confidence": float(self.confidence),
-            "verified": int(self.verified),  # Chroma prefers int/str/float
+            "verified": int(self.verified),
             "researcher_session": self.researcher_session,
             "source_url": self.source_url or "",
         }
@@ -61,13 +60,11 @@ class ResearchDocument(BaseModel):
                 meta[f"meta_{k}"] = v
         return meta
 
-
 class SearchResult(BaseModel):
     """Envelope for vector search matches."""
     document: ResearchDocument
     similarity_score: float
     distance: float
-
 
 class DocumentChunker:
     """Specialized financial document chunker supporting:
@@ -96,7 +93,6 @@ class DocumentChunker:
         while start < text_len:
             end = min(start + chunk_size, text_len)
             if end < text_len:
-                # Seek a natural break point (paragraph break, period, newline)
                 break_point = -1
                 search_zone = text[max(start, end - 150):end]
                 for sep in ["\n\n", ".\n", ". ", "!\n", "! ", "?\n", "? ", "\n"]:
@@ -139,7 +135,6 @@ class DocumentChunker:
         year_str = str(year) if year else datetime.now(timezone.utc).strftime("%Y")
         date_str = filing_date or datetime.now(timezone.utc).isoformat()
 
-        # Regex detecting standard SEC Items: "ITEM 1.", "ITEM 1A.", "ITEM 7.", etc.
         item_pattern = re.compile(
             r"(?P<header>(?:PART\s+[I|V|X]+\s+)?ITEM\s+(?:1A|1B|7A|[1-9][0-4]?[A-Z]?)\.?\s*[-–—:]?\s*[^\n\r]{2,120})",
             re.IGNORECASE
@@ -155,7 +150,6 @@ class DocumentChunker:
                 end_pos = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
                 section_body = text[match.end():end_pos].strip()
 
-                # Clean section title
                 clean_title = re.sub(r"\s+", " ", header)
                 tag_match = re.search(r"ITEM\s+([0-9A-Z]+)", header, re.IGNORECASE)
                 item_tag = tag_match.group(1).lower() if tag_match else f"sec{idx+1}"
@@ -166,7 +160,6 @@ class DocumentChunker:
                     "content": section_body
                 })
         else:
-            # Fallback if no explicit item headers found: treat whole text as general disclosure
             sections.append({
                 "title": f"{ticker_clean} {filing_type} Disclosure",
                 "tag": "full",
@@ -197,7 +190,7 @@ class DocumentChunker:
                     ticker=ticker_clean,
                     source_type=filing_type,
                     date=date_str,
-                    confidence=0.98,  # SEC filings are Tier 1 primary sources
+                    confidence=0.98,
                     verified=True,
                     source_url=source_url,
                     metadata={
@@ -236,7 +229,6 @@ class DocumentChunker:
 
         documents: List[ResearchDocument] = []
 
-        # Split text into Safe Harbor / Management Remarks vs Q&A
         qa_divider_pattern = re.compile(
             r"(?:question[s]?\s*(?:and|&)\s*answer[s]?\s*session|q\s*&\s*a\s*session|q&a)",
             re.IGNORECASE
@@ -245,7 +237,6 @@ class DocumentChunker:
         remarks_part = parts[0].strip() if parts else text
         qa_part = parts[1].strip() if len(parts) > 1 else ""
 
-        # 1. Process Management Remarks (Prepared Remarks by CEO/CFO)
         if remarks_part:
             remarks_windows = cls._split_into_windows(
                 remarks_part, chunk_size=target_chunk_size, overlap=chunk_overlap
@@ -274,9 +265,7 @@ class DocumentChunker:
                 )
                 documents.append(doc)
 
-        # 2. Process Q&A Session: Pair Analyst Questions with Executive Answers
         if qa_part:
-            # Pattern matching speaker turn: e.g. "Operator:", "John Doe (Morgan Stanley):", "Satya Nadella:"
             speaker_pattern = re.compile(
                 r"(?:\n|^)(?P<speaker>[A-Z][A-Za-z\s\.\,\(\)\-]+?)\s*:\s*",
                 re.MULTILINE
@@ -291,7 +280,6 @@ class DocumentChunker:
                 turn_text = qa_part[start_p:end_p].strip()
                 turns.append({"speaker": speaker, "text": turn_text})
 
-            # Now pair Question turns with subsequent Executive Answer turns
             qa_pairs: List[Dict[str, Any]] = []
             curr_question: Optional[Dict[str, str]] = None
             curr_answers: List[Dict[str, str]] = []
@@ -299,7 +287,6 @@ class DocumentChunker:
             for turn in turns:
                 spk_lower = turn["speaker"].lower()
                 is_operator = "operator" in spk_lower
-                # Analyst indicator: Contains firm name or question markers or is not executive
                 is_analyst = (
                     "analyst" in spk_lower or
                     "(" in turn["speaker"] or
@@ -311,7 +298,6 @@ class DocumentChunker:
                     continue
 
                 if is_analyst and curr_answers:
-                    # Save previous pair
                     qa_pairs.append({
                         "question": curr_question,
                         "answers": curr_answers
@@ -321,7 +307,6 @@ class DocumentChunker:
                 elif is_analyst and curr_question is None:
                     curr_question = turn
                 else:
-                    # Executive answer
                     curr_answers.append(turn)
 
             if curr_question and curr_answers:
@@ -330,7 +315,6 @@ class DocumentChunker:
                     "answers": curr_answers
                 })
 
-            # If no formal speaker regex matches could be paired, chunk Q&A directly
             if not qa_pairs:
                 qa_windows = cls._split_into_windows(
                     qa_part, chunk_size=target_chunk_size, overlap=chunk_overlap
@@ -362,7 +346,6 @@ class DocumentChunker:
                     answers_body = "\n".join([f"{a['speaker']}: {a['text']}" for a in pair["answers"]])
 
                     full_dialogue = f"Question ({q_spk}):\n{q_body}\n\nAnswer:\n{answers_body}"
-                    # If dialogue fits in one window
                     if len(full_dialogue) <= target_chunk_size:
                         doc_id = f"{ticker_clean.lower()}-transcript-{year_str}-{quarter_clean.lower()}-qa-{p_idx:03d}"
                         doc = ResearchDocument(
@@ -388,7 +371,6 @@ class DocumentChunker:
                         )
                         documents.append(doc)
                     else:
-                        # Split while retaining question header
                         ans_windows = cls._split_into_windows(
                             answers_body,
                             chunk_size=max(600, target_chunk_size - len(q_body) - 100),
@@ -457,7 +439,7 @@ class DocumentChunker:
                 ticker=ticker_clean,
                 source_type="news",
                 date=date_str,
-                confidence=0.85,  # News articles are Tier 3 secondary sources
+                confidence=0.85,
                 verified=False,
                 source_url=source_url,
                 metadata={
@@ -471,8 +453,6 @@ class DocumentChunker:
             documents.append(doc)
 
         return documents
-
-
 
 class EmbeddingGenerator:
     """Computes dense vector representations with OpenAI or deterministic offline fallback."""
@@ -510,7 +490,6 @@ class EmbeddingGenerator:
             except Exception as e:
                 logger.error(f"OpenAI embedding generation failed ({e}). Falling back to deterministic embedding.")
 
-        # Deterministic offline pseudo-embedding generator
         embeddings = []
         for text in texts:
             vec = self._pseudo_embed(text)
@@ -528,26 +507,21 @@ class EmbeddingGenerator:
         if not text:
             return vec
 
-        # Tokenize and extract unigrams
         words = re.findall(r"[A-Za-z0-9\$\%]+", text.lower())
         if not words:
             return vec
 
-        # Term frequency weighting with sublinear scaling
         word_counts: Dict[str, int] = {}
         for w in words:
             word_counts[w] = word_counts.get(w, 0) + 1
 
         for w, count in word_counts.items():
-            # Term weight (1 + log(tf))
             weight = 1.0 + math.log(count)
-            # Hash to dimension slot
             h_int = int(hashlib.md5(w.encode("utf-8")).hexdigest(), 16)
             slot = h_int % self.dimension
             sign = 1.0 if ((h_int >> 16) & 1) == 1 else -1.0
             vec[slot] += sign * weight
 
-            # Also hash prefixes for morphological and word stem overlap
             if len(w) >= 4:
                 prefix = w[:4]
                 h_pre = int(hashlib.md5(prefix.encode("utf-8")).hexdigest(), 16)
@@ -555,12 +529,10 @@ class EmbeddingGenerator:
                 sign_pre = 1.0 if ((h_pre >> 16) & 1) == 1 else -1.0
                 vec[slot_pre] += sign_pre * (weight * 0.5)
 
-        # Normalize vector to unit length (L2 norm)
         norm = math.sqrt(sum(x * x for x in vec))
         if norm > 0:
             vec = [x / norm for x in vec]
         return vec
-
 
 class FinancialVectorStore:
     """Manages persistent storage, metadata indexing, and retrieval of research chunks."""
@@ -582,7 +554,6 @@ class FinancialVectorStore:
         except Exception:
             self.agent_logger = None
 
-        # Initialize ChromaDB persistent client (thread-safe singleton per path)
         path_str = str(self.persist_dir.resolve())
         with _CHROMA_LOCK:
             if path_str not in _CHROMA_CLIENT_CACHE:
@@ -635,7 +606,6 @@ class FinancialVectorStore:
 
         query_embedding = self.embedder.embed_text(query)
 
-        # Build metadata filter dictionary
         where_filter: Dict[str, Any] = {}
         conditions = []
         if ticker:
@@ -669,8 +639,6 @@ class FinancialVectorStore:
         distances = raw_results["distances"][0]
 
         for doc_id, text, meta, dist in zip(ids, documents, metadatas, distances):
-            # Chroma distances with cosine metric: distance in [0, 2]
-            # Normalized similarity score in [0.0, 1.0]
             similarity = max(0.0, min(1.0, 1.0 - (dist / 2.0)))
 
             doc = ResearchDocument(

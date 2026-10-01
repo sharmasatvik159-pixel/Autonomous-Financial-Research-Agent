@@ -20,7 +20,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -34,7 +33,6 @@ from memory.episodic import EpisodicMemoryStore
 from agent.query_analyzer import get_query_analyzer
 from agent.disambiguation import get_disambiguation_engine
 from config.settings import get_settings
-
 
 def seed_technology_memory(vector_store: FinancialVectorStore) -> None:
     """Seeds the vector store with verified findings from Challenges 1 through 5."""
@@ -119,7 +117,6 @@ def seed_technology_memory(vector_store: FinancialVectorStore) -> None:
     for doc in docs:
         vector_store.add_document(doc)
 
-
 class Challenge7MockLLM(MockChatModel):
     """Context-aware mock LLM that executes memory-driven ReAct research for Technology Sector Analysis."""
 
@@ -129,7 +126,6 @@ class Challenge7MockLLM(MockChatModel):
 
     def invoke(self, messages, tools=None):
         self.step += 1
-        # Step 1: Query vector memory for hyperscale cloud infrastructure and AI CapEx across MSFT, AMZN, GOOGL
         if self.step == 1:
             content = (
                 "Thought: The user is requesting a cross-cutting technology sector analysis based on companies ARA-1 has previously researched. "
@@ -139,7 +135,6 @@ class Challenge7MockLLM(MockChatModel):
                 "Action: vector_db_search\n"
                 "Action Input: {\"query\": \"hyperscale cloud AI infrastructure CapEx revenue growth Azure AWS Google Cloud\", \"limit\": 3}"
             )
-        # Step 2: Query vector memory for enterprise AI adoption, ontology integration, and software margins (PLTR, MSFT)
         elif self.step == 2:
             content = (
                 "Thought: Having retrieved cloud infrastructure findings, I will now query long-term memory for enterprise software adoption, "
@@ -147,7 +142,6 @@ class Challenge7MockLLM(MockChatModel):
                 "Action: vector_db_search\n"
                 "Action Input: {\"query\": \"enterprise AI adoption AIP bootcamps ontology Copilot commercial revenue growth\", \"limit\": 3}"
             )
-        # Step 3: Query vector memory for edge hardware AI, services cash flows, and physical AI robotics (AAPL, TSLA)
         elif self.step == 3:
             content = (
                 "Thought: To complete our portfolio coverage, I must retrieve memory findings for consumer edge AI devices (Apple Intelligence, "
@@ -155,7 +149,6 @@ class Challenge7MockLLM(MockChatModel):
                 "Action: vector_db_search\n"
                 "Action Input: {\"query\": \"Apple Intelligence edge AI on device Tesla FSD autonomous compute energy storage\", \"limit\": 3}"
             )
-        # Step 4: Query web search for industry-wide macro data on datacenter power constraints and antitrust headwinds
         elif self.step == 4:
             content = (
                 "Thought: While our vector memory contains company-specific fundamentals, I need supplementary industry-wide macro intelligence "
@@ -163,7 +156,6 @@ class Challenge7MockLLM(MockChatModel):
                 "Action: web_search\n"
                 "Action Input: {\"query\": \"Big tech datacenter power grid nuclear contracts antitrust DOJ Google Apple\", \"max_results\": 4}"
             )
-        # Step 5: Execute calculation engine to compute aggregate sector CapEx and valuation multiple spread
         elif self.step == 5:
             content = (
                 "Thought: I will use the calculation engine to compute the aggregate combined AI infrastructure CapEx across the hyperscalers "
@@ -171,7 +163,6 @@ class Challenge7MockLLM(MockChatModel):
                 "Action: calculation_engine\n"
                 "Action Input: {\"calculation_type\": \"ratio\", \"inputs\": {\"numerator\": 172.7, \"denominator\": 256.0}}"
             )
-        # Step 6: Final Synthesis of Comprehensive 10-15 Page Thematic Technology Sector Report
         else:
             content = (
                 "Thought: I have retrieved multi-company statutory findings from long-term vector memory, gathered supplementary macro intelligence "
@@ -281,7 +272,6 @@ class Challenge7MockLLM(MockChatModel):
         from langchain_core.messages import AIMessage
         return AIMessage(content=content, response_metadata={"token_usage": {"prompt_tokens": 175, "completion_tokens": 420}})
 
-
 def run_challenge_7(output_dir: Optional[str] = None) -> str:
     """Executes Challenge 7 end-to-end and writes results/challenge_7.md."""
     settings = get_settings()
@@ -293,7 +283,6 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
     print("ARA-1 RESEARCH RUNNER: CHALLENGE 7 (Technology Sector Analysis with Memory)")
     print("=" * 75)
 
-    # 1. Initialize Vector Store & Seed Memory Corpus
     data_dir = ROOT_DIR / "data" / "chroma_db"
     vector_store = FinancialVectorStore(
         persist_directory=str(data_dir),
@@ -303,7 +292,6 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
     seed_technology_memory(vector_store)
     print(f"[MEMORY] Successfully verified {vector_store.count()} documents in long-term memory.")
 
-    # 2. Query Intelligence & Disambiguation Pre-Check
     analyzer = get_query_analyzer()
     disambiguator = get_disambiguation_engine()
     raw_query = (
@@ -318,7 +306,6 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
     for asm in plan.documented_assumptions[:2]:
         print(f"[DISAMBIGUATION] {asm}")
 
-    # 3. Setup Agent & LLM
     if settings.MOCK_MODE or not settings.is_openai_configured():
         custom_llm = LLMClient(force_mock=True)
         custom_llm._chat_model = Challenge7MockLLM()
@@ -326,7 +313,6 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
         custom_llm = LLMClient()
 
     registry = create_default_registry()
-    # Explicitly wire seeded vector store into memory tools
     search_tool = registry.get_tool("vector_db_search")
     if search_tool and hasattr(search_tool, "vector_store"):
         search_tool.vector_store = vector_store
@@ -344,13 +330,11 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
         pattern="REACT",
     )
 
-
     query = get_challenge_7_prompt(query=raw_query)
     start_time = time.time()
     result = agent.execute(query, session_id="challenge-7-session")
     elapsed = time.time() - start_time
 
-    # Prepend the documented disambiguation assumptions preamble to the final report
     final_full_report = f"{plan.preamble_markdown}\n{result.report}"
 
     with open(report_path, "w", encoding="utf-8") as f:
@@ -362,7 +346,6 @@ def run_challenge_7(output_dir: Optional[str] = None) -> str:
     print(f"[TOOLS] Invoked: {[tc['tool'] for tc in result.tool_calls]}")
     print("=" * 75)
     return str(report_path)
-
 
 if __name__ == "__main__":
     run_challenge_7()

@@ -14,7 +14,6 @@ from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger("ARA1.ToolRegistry")
 
-
 class ToolMetadata(BaseModel):
     """Metadata describing a tool and its execution constraints."""
     name: str
@@ -24,7 +23,6 @@ class ToolMetadata(BaseModel):
     fallback_tools: List[str] = []
     unlocked: bool = True
     input_schema: Optional[Type[BaseModel]] = None
-
 
 class ToolResult(BaseModel):
     """Normalized response envelope returned by all tool invocations."""
@@ -40,7 +38,6 @@ class ToolResult(BaseModel):
         if not data.get("timestamp"):
             data["timestamp"] = datetime.now(timezone.utc).isoformat()
         super().__init__(**data)
-
 
 class BaseTool:
     """Base class that all financial research tools must implement."""
@@ -143,7 +140,6 @@ class BaseTool:
                 latency_seconds=round(latency, 4)
             )
 
-
 class MockStubTool(BaseTool):
     """Stub tool implementation returning realistic mock responses for testing."""
 
@@ -160,7 +156,6 @@ class MockStubTool(BaseTool):
             "inputs_received": kwargs,
             "message": f"Simulated output from {self.name}"
         }
-
 
 class ToolRegistry:
     """Central registry and dispatch engine for agent tools."""
@@ -253,7 +248,6 @@ class ToolRegistry:
                 error=f"Tool '{tool_name}' is currently locked. Complete prior milestones to unlock."
             )
 
-        # Check circuit breaker
         if self._circuit_breaker_hook and self._circuit_breaker_hook(tool_name):
             logger.warning(f"Circuit breaker tripped for {tool_name}. Seeking fallback.")
             if use_fallback and tool.metadata.fallback_tools:
@@ -264,12 +258,10 @@ class ToolRegistry:
                 error=f"Circuit breaker OPEN for tool '{tool_name}'. Request halted."
             )
 
-        # Execute primary tool
         result = tool(**arguments)
         if result.success:
             return result
 
-        # Fallback routing on failure (only for runtime/upstream errors, not client schema validation errors)
         is_validation_error = bool(result.error and "validation failed" in result.error.lower())
         if use_fallback and not is_validation_error and tool.metadata.fallback_tools:
             logger.info(f"Tool {tool_name} failed. Attempting fallback chain: {tool.metadata.fallback_tools}")
@@ -295,7 +287,6 @@ class ToolRegistry:
             if not fallback_tool or not fallback_tool.unlocked:
                 continue
 
-            # Check circuit breaker on fallback
             if self._circuit_breaker_hook and self._circuit_breaker_hook(fallback_name):
                 continue
 
@@ -318,7 +309,6 @@ class ToolRegistry:
             success=False,
             error=f"Primary tool failed ({original_error}) and all fallbacks exhausted."
         )
-
 
 def create_default_registry() -> ToolRegistry:
     """Factory creating and populating the default 12-tool registry for ARA-1."""
@@ -351,40 +341,28 @@ def create_default_registry() -> ToolRegistry:
 
     registry = ToolRegistry()
 
-    # 1. sec_filing_search (Real SEC EDGAR API Integration)
     registry.register_tool(SecFilingSearchTool())
 
-    # 2. web_search (Real Web & Public Search Integration)
     registry.register_tool(WebSearchTool())
 
-    # 3. earnings_transcript (Real Conference Call Q&A Transcript Tool)
     registry.register_tool(EarningsTranscriptTool())
 
-    # 4. financial_data_api (Real yfinance & Market Fundamentals Integration)
     registry.register_tool(FinancialDataApiTool())
 
-    # 5. news_sentiment (Real TextBlob NLP Sentiment Scoring Integration)
     registry.register_tool(NewsSentimentTool())
 
-    # 6. vector_db_search (Real ChromaDB Semantic Search Integration)
     registry.register_tool(VectorDbSearchTool())
 
-    # 7. vector_db_store (Real ChromaDB Document Persistence Integration)
     registry.register_tool(VectorDbStoreTool())
 
-    # 8. company_profile (Real Corporate Entity Profile & Leadership Tool)
     registry.register_tool(CompanyProfileTool())
 
-    # 9. peer_comparison (Real Competitor Multiple Benchmarking & Ranking Tool)
     registry.register_tool(PeerComparisonTool())
 
-    # 10. calculation_engine (Real Deterministic DCF, WACC, CAGR Modeling Tool)
     registry.register_tool(CalculationEngineTool())
 
-    # 11. fact_checker (Real Claim Verification & Contradiction Triangulation Tool)
     registry.register_tool(FactCheckerTool())
 
-    # 12. report_generator (Real Institutional Markdown Synthesis Generator Tool)
     registry.register_tool(ReportGeneratorTool())
 
     return registry

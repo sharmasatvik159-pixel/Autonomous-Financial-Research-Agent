@@ -3,7 +3,6 @@
 import os
 from config.settings import Settings, get_settings
 
-
 def test_settings_defaults():
     """Verify default configurations adhere to system specifications."""
     settings = get_settings()
@@ -16,12 +15,11 @@ def test_settings_defaults():
     assert settings.MAX_TOOL_CALLS_PER_TASK == 20
     assert "QuantumEdgeResearch" in settings.SEC_EDGAR_USER_AGENT
 
-
 def test_settings_api_configuration_checks():
     """Verify API availability checker logic."""
     test_settings = Settings(
         OPENAI_API_KEY="sk-proj-test1234567890abcdef",
-        ANTHROPIC_API_KEY="your_anthropic_api_key_here"  # Placeholder
+        ANTHROPIC_API_KEY="your_anthropic_api_key_here"
     )
 
     assert test_settings.is_openai_configured() is True

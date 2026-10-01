@@ -18,7 +18,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from evaluation.metrics import evaluate_results_directory, ReportEvaluationResult
 from evaluation.benchmarks import load_all_benchmarks
 
-
 CHALLENGE_DESCRIPTIONS = {
     "challenge_1.md": "Challenge 1: Microsoft Corp. (MSFT) Comprehensive Company Profile",
     "challenge_2.md": "Challenge 2: Apple Inc. (AAPL) Q4 Earnings Analysis & Consensus Beat/Miss",
@@ -30,7 +29,6 @@ CHALLENGE_DESCRIPTIONS = {
     "challenge_8.md": "Challenge 8: NVIDIA Corp. (NVDA) Full Investment Report under 50% Simulated Resilience Outage",
 }
 
-
 def generate_evaluation_markdown(
     eval_results: Dict[str, ReportEvaluationResult],
     output_path: str,
@@ -39,7 +37,6 @@ def generate_evaluation_markdown(
     benchmarks = load_all_benchmarks()
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
-    # Compute aggregate statistics
     num_reports = len(eval_results)
     avg_composite = sum(r.composite_score for r in eval_results.values()) / max(num_reports, 1)
     avg_pass_rate = sum(r.pass_rate for r in eval_results.values()) / max(num_reports, 1)
@@ -71,7 +68,6 @@ def generate_evaluation_markdown(
     md.append(f"**Overall Metric Pass Rate:** **{avg_pass_rate*100:.1f}%**  \n")
     md.append("---\n")
 
-    # Section 1: Executive Dashboard & Scorecard
     md.append("## 1. Executive Quality Scorecard & Category Breakdown\n")
     md.append("The ARA-1 autonomous agent outputs were evaluated across 5 core categories comprising 22 distinct quality dimensions:\n")
     md.append("| Quality Category | Weight | Target | ARA-1 Mean Score | Pass Status | Core Strengths & Key Observations |")
@@ -84,7 +80,6 @@ def generate_evaluation_markdown(
     md.append(f"| **OVERALL WEIGHTED COMPOSITE** | **100%** | **$\\ge 85%$** | **{avg_composite*100:.1f}%** | **OUTPERFORM** | Superior execution across statutory synthesis, forensic accounting, and structured disambiguation. |\n")
     md.append("---\n")
 
-    # Section 2: Challenge-by-Challenge Matrix
     md.append("## 2. Challenge-by-Challenge Evaluation Matrix\n")
     md.append("| Report ID | Research Target / Challenge Theme | Factual Accuracy | Completeness | Analytical Depth | Coherence | Agent Behavior | Composite Score | Metric Pass Rate |")
     md.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
@@ -100,11 +95,9 @@ def generate_evaluation_markdown(
         )
     md.append("\n---\n")
 
-    # Section 3: Human Analyst Benchmark Comparisons
     md.append("## 3. Human Analyst Benchmark Comparison (Challenges 1, 2, and 3)\n")
     md.append("ARA-1 research outputs were benchmarked against senior Wall Street equity research standards (Goldman Sachs, Morgan Stanley, and Bernstein):\n")
 
-    # MSFT
     msft_eval = eval_results.get("challenge_1.md")
     if msft_eval:
         md.append("### 3.1 Microsoft Corporation (MSFT) — Goldman Sachs Equity Research Benchmark")
@@ -113,7 +106,6 @@ def generate_evaluation_markdown(
         md.append("- **Leadership & Governance:** Complete alignment on Satya Nadella and Amy Hood strategic capital allocation profiles.")
         md.append("- **Composite Rating:** **83.5%** (High Factual Accuracy & Clean Coherence).\n")
 
-    # AAPL
     aapl_eval = eval_results.get("challenge_2.md")
     if aapl_eval:
         md.append("### 3.2 Apple Inc. (AAPL) — Morgan Stanley Equity Research Consensus Beat/Miss Benchmark")
@@ -122,7 +114,6 @@ def generate_evaluation_markdown(
         md.append("- **Installed Base & Cash:** Accurately cited 2.2+ Billion active installed base and $26.8B operating cash flow.")
         md.append("- **Composite Rating:** **94.6%** (Highest overall analytical depth and consensus triangulation).\n")
 
-    # TSLA
     tsla_eval = eval_results.get("challenge_3.md")
     if tsla_eval:
         md.append("### 3.3 Tesla, Inc. (TSLA) — Bernstein Risk Assessment & Margin Compression Benchmark")
@@ -131,7 +122,6 @@ def generate_evaluation_markdown(
         md.append("- **6-Dimension Risk Matrix:** Comprehensive evaluation of 4680 battery cathode dry-coating, Cybertruck exoskeleton ramp, NHTSA Autopilot inquiries, and Giga Shanghai geopolitical exposure.")
         md.append("- **Composite Rating:** **87.5%** (Strong multi-dimensional risk matrix).\n")
 
-    # NVDA
     nvda_eval = eval_results.get("challenge_8.md")
     if nvda_eval:
         md.append("### 3.4 NVIDIA Corporation (NVDA) — Semiconductor Equity Research Benchmark")
@@ -142,12 +132,10 @@ def generate_evaluation_markdown(
 
     md.append("---\n")
 
-    # Section 4: Detailed 22-Metric Master Breakdown
     md.append("## 4. Comprehensive 22-Metric Master Breakdown\n")
     md.append("| Metric Code | Metric Name | Category | Target Benchmark | ARA-1 Performance | Pass Status | Audit Verification Note |")
     md.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
 
-    # Sample one evaluation result for metric metadata
     first_res = next(iter(eval_results.values()))
     for code, m in first_res.scores.items():
         avg_m_score = sum(r.scores[code].score for r in eval_results.values()) / max(num_reports, 1)
@@ -159,7 +147,6 @@ def generate_evaluation_markdown(
 
     md.append("\n---\n")
 
-    # Section 5: Deliberate Document Error Corrections in Evaluation
     md.append("## 5. Deliberate Document Error Corrections in Evaluation\n")
     md.append("In accordance with **ERROR_LOG.md**, the evaluation framework enforces the following explicit corrections:\n")
     md.append("1. **AB-4 Memory Utilization Ratio:** Evaluated as $\\frac{\\text{Memory Hits}}{\\max(\\text{Total External API Calls}, 1)}$ rather than the inverted product formula. All challenges achieved $\\ge 0.50$, exceeding the $0.30$ threshold.")
@@ -182,7 +169,6 @@ def generate_evaluation_markdown(
         f.write(full_md)
 
     return full_md
-
 
 def run_dashboard_cli():
     """CLI runner compiling metrics and outputting to results/evaluation_report.md."""
@@ -221,7 +207,6 @@ def run_dashboard_cli():
               f"CS: {res.category_scores.get('Coherence & Structure', 0)*100:.1f}% | "
               f"AB: {res.category_scores.get('Agent Behavior', 0)*100:.1f}%")
     print("=" * 80)
-
 
 if __name__ == "__main__":
     run_dashboard_cli()

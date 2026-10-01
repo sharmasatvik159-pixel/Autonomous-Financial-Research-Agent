@@ -18,7 +18,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from tools.tool_registry import create_default_registry, ToolRegistry, ToolResult
 
-
 CORE_TOOLS = [
     "sec_filing_search",
     "financial_data_api",
@@ -102,18 +101,15 @@ SAMPLE_INPUTS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-
 @pytest.fixture(scope="module")
 def registry() -> ToolRegistry:
     return create_default_registry()
-
 
 def test_core_tools_registered(registry: ToolRegistry):
     """Verify all core tools exist in the default registry."""
     registered = registry.list_tools()
     for tool_name in CORE_TOOLS:
         assert tool_name in registered, f"Tool '{tool_name}' missing from ToolRegistry"
-
 
 @pytest.mark.parametrize("tool_name", CORE_TOOLS)
 def test_openai_tool_schema_conformance(registry: ToolRegistry, tool_name: str):
@@ -138,7 +134,6 @@ def test_openai_tool_schema_conformance(registry: ToolRegistry, tool_name: str):
     assert isinstance(params["properties"], dict), "Properties must be a dict"
     assert "required" in params and isinstance(params["required"], list), "Required field list must exist"
 
-
 @pytest.mark.parametrize("tool_name", CORE_TOOLS)
 def test_anthropic_tool_schema_conformance(registry: ToolRegistry, tool_name: str):
     """Verify that each tool schema conforms to Anthropic tool use specifications."""
@@ -156,7 +151,6 @@ def test_anthropic_tool_schema_conformance(registry: ToolRegistry, tool_name: st
     assert input_schema.get("type") == "object", "input_schema type must be 'object'"
     assert "properties" in input_schema, "input_schema properties dict required"
 
-
 @pytest.mark.parametrize("tool_name", CORE_TOOLS)
 def test_tool_execution_returns_valid_json(registry: ToolRegistry, tool_name: str):
     """Verify each tool executes safely and returns JSON-serializable data without throwing unhandled exceptions."""
@@ -170,7 +164,6 @@ def test_tool_execution_returns_valid_json(registry: ToolRegistry, tool_name: st
     assert result.tool_name == tool_name
     assert result.latency_seconds >= 0.0
 
-    # Test full JSON serializability of data and envelope
     try:
         serialized = json.dumps(result.model_dump(), default=str)
         assert len(serialized) > 0
@@ -178,7 +171,6 @@ def test_tool_execution_returns_valid_json(registry: ToolRegistry, tool_name: st
         assert parsed["tool_name"] == tool_name
     except Exception as exc:
         pytest.fail(f"Tool '{tool_name}' returned non-JSON-serializable output: {exc}")
-
 
 def run_full_tool_audit() -> Dict[str, Any]:
     """Autonomous standalone audit execution returning structured audit summary."""
@@ -199,7 +191,6 @@ def run_full_tool_audit() -> Dict[str, Any]:
             audit_results[tool_name] = {"registered": False, "pass": False}
             continue
 
-        # 1. Schema checks
         openai_schema = tool.to_openai_schema()
         anthropic_schema = tool.to_anthropic_schema()
         schema_valid = (
@@ -209,7 +200,6 @@ def run_full_tool_audit() -> Dict[str, Any]:
         )
         print(f"    [+] Schemas (OpenAI & Anthropic): {'VALID' if schema_valid else 'INVALID'}")
 
-        # 2. Execution check
         inputs = SAMPLE_INPUTS[tool_name]
         try:
             res = reg.execute(tool_name, inputs)
@@ -238,7 +228,6 @@ def run_full_tool_audit() -> Dict[str, Any]:
     print(f"AUDIT SUMMARY: {passed_count}/{total_count} Tools Passed Fully ({passed_count/total_count*100:.1f}%)")
     print("=" * 70)
     return audit_results
-
 
 if __name__ == "__main__":
     results = run_full_tool_audit()

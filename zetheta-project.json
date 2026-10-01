@@ -1,7 +1,7 @@
 {
-  "intern_identifier": "[Your OAuth Login ID]",
-  "intern_name": "[Your Full Name]",
-  "intern_email": "[Your Email]",
+  "intern_identifier": "sharmasatvik159-pixel",
+  "intern_name": "Satvik Sharma",
+  "intern_email": "sharmasatvik159@gmail.com",
   "project_code": "1A",
   "project_title": "Autonomous Financial Research Agent with Multi-Source Synthesis",
   "submission_type": "github",
@@ -15,7 +15,7 @@
     "Financial Data API"
   ],
   "duration_days": 15,
-  "github_repo_url": "https://github.com/ZethetaIntern/Project1A-[YourName]-AutonomousFinancialResearchAgent",
+  "github_repo_url": "https://github.com/sharmasatvik159-pixel/Autonomous-Financial-Research-Agent.git",
   "assessment_criteria": {
     "architecture_design": true,
     "tool_orchestration": true,

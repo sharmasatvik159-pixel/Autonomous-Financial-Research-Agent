@@ -17,7 +17,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.Tools.NewsSentiment")
 
-
 class NewsSentimentTool(BaseTool):
     """Tool that analyzes sentiment polarity and tone of financial news articles."""
 
@@ -53,7 +52,6 @@ class NewsSentimentTool(BaseTool):
 
         self.rate_limiter.acquire(self.name, rps=5.0)
 
-        # Pull articles via web search tool or curated representative headlines
         headlines = self._get_sample_headlines(query)
 
         scored_articles = []
@@ -68,7 +66,6 @@ class NewsSentimentTool(BaseTool):
             total_polarity += polarity
             total_subjectivity += subjectivity
 
-            # Classification
             if polarity > 0.15:
                 label = "Bullish / Positive"
             elif polarity < -0.15:
@@ -105,7 +102,6 @@ class NewsSentimentTool(BaseTool):
             "methodology": "TextBlob Lexicon & Rule-based Sentiment Analysis",
         }
 
-        # Cache for 1 hour
         self.cache.set(self.name, cache_args, result, ttl_seconds=3600)
         return result
 

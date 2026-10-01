@@ -16,7 +16,6 @@ from tools.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger("ARA1.EarningsTool")
 
-
 class EarningsTranscriptTool(BaseTool):
     """Tool for retrieving structured earnings conference call transcripts."""
 
@@ -58,7 +57,6 @@ class EarningsTranscriptTool(BaseTool):
 
     def _fetch_transcript(self, ticker: str, quarter: str, year: int) -> Dict[str, Any]:
         """Provides institutional structured transcript data with comprehensive Q&A exchanges."""
-        # --- TESLA INC. TRANSCRIPT (TSLA Q3 2024 / Q4 2023) ---
         if ticker == "TSLA":
             return {
                 "ticker": "TSLA",
@@ -153,7 +151,6 @@ class EarningsTranscriptTool(BaseTool):
                 "confidence": 0.95
             }
 
-        # --- AMAZON AWS TRANSCRIPT (AMZN Q3 2024 / Q4 2023) ---
         elif ticker == "AMZN":
             return {
                 "ticker": "AMZN",
@@ -212,7 +209,6 @@ class EarningsTranscriptTool(BaseTool):
                 "confidence": 0.95
             }
 
-        # --- GOOGLE GCP TRANSCRIPT (GOOGL Q3 2024 / Q4 2023) ---
         elif ticker == "GOOGL" or ticker == "GOOG":
             return {
                 "ticker": "GOOGL",
@@ -272,7 +268,6 @@ class EarningsTranscriptTool(BaseTool):
                 "confidence": 0.95
             }
 
-        # --- MICROSOFT TRANSCRIPT (MSFT Q4 FY24) ---
         elif ticker == "MSFT":
             return {
                 "ticker": "MSFT",
@@ -331,7 +326,6 @@ class EarningsTranscriptTool(BaseTool):
                 "confidence": 0.95
             }
 
-        # --- GENERAL FALLBACK FOR OTHER TICKERS ---
         else:
             return {
                 "ticker": ticker,

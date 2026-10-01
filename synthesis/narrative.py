@@ -16,7 +16,6 @@ from synthesis.conflict_resolver import DataPoint, SourceTier
 
 logger = logging.getLogger("ARA1.Synthesis.Narrative")
 
-
 class TriangulationResult(BaseModel):
     """Result of cross-referencing a factual or quantitative claim across independent sources."""
     metric_or_claim: str
@@ -28,7 +27,6 @@ class TriangulationResult(BaseModel):
     verdict: str = Field(description="'TRIANGULATED_CONFIRMED', 'SINGLE_SOURCE_UNCONFIRMED', 'CONTRADICTED'")
     narrative_explanation: str
 
-
 class NarrativeThread(BaseModel):
     """A synthesized theme connecting facts, quantitative metrics, and forward catalysts."""
     theme_title: str
@@ -37,7 +35,6 @@ class NarrativeThread(BaseModel):
     management_perspective: Optional[str] = None
     regulatory_or_risk_factor: Optional[str] = None
     synthesis_conclusion: str
-
 
 class QuantitativeTriangulator:
     """Validates claims by cross-referencing across multiple independent tiers."""
@@ -64,7 +61,6 @@ class QuantitativeTriangulator:
         unique_sources = set(p.source_type for p in observations)
         source_count = len(unique_sources)
 
-        # Baseline checks
         if source_count < self.min_sources:
             top_p = observations[0]
             return TriangulationResult(
@@ -81,7 +77,6 @@ class QuantitativeTriangulator:
                 ),
             )
 
-        # Check numerical congruence among sources
         primary_val = observations[0].value
         concordant = []
         conflicting = []
@@ -89,7 +84,7 @@ class QuantitativeTriangulator:
         for p in observations:
             if isinstance(primary_val, (int, float)) and isinstance(p.value, (int, float)):
                 diff = abs(float(p.value) - float(primary_val)) / max(abs(float(primary_val)), 1.0)
-                if diff <= 0.05:  # within 5%
+                if diff <= 0.05:
                     concordant.append(p.source_type)
                 else:
                     conflicting.append(p.source_type)
@@ -102,9 +97,7 @@ class QuantitativeTriangulator:
         conflicting = list(set(conflicting))
 
         if len(concordant) >= self.min_sources and not conflicting:
-            # Multi-tier confirmation
             avg_conf = sum(p.confidence for p in observations) / len(observations)
-            # Boost confidence for multi-source confirmation
             boosted_conf = min(1.0, round(avg_conf + 0.15, 2))
             return TriangulationResult(
                 metric_or_claim=claim_name,
@@ -144,7 +137,6 @@ class QuantitativeTriangulator:
                 verdict="TRIANGULATED_CONFIRMED",
                 narrative_explanation=f"Corroborated across {len(concordant)} sources.",
             )
-
 
 class NarrativeThreader:
     """Connects siloed analytical data points into coherent investment narrative sections."""
